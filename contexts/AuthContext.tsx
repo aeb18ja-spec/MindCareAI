@@ -178,6 +178,25 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     }
   }, []);
 
+  const loginWithGoogle = useCallback(async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+    });
+    if (error) {
+      throw new Error(error.message);
+    }
+  }, []);
+
+  const sendPasswordReset = useCallback(async (email: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      normalizedEmail,
+    );
+    if (error) {
+      throw new Error(error.message);
+    }
+  }, []);
+
   const signup = useCallback(
     async (
       name: string,
@@ -252,6 +271,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     isAuthenticated,
     isLoading,
     login,
+    loginWithGoogle,
+    sendPasswordReset,
     signup,
     logout,
   };

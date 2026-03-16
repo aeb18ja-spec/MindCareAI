@@ -41,9 +41,12 @@ const noOpLock = async <R>(
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: authStorage,
-    autoRefreshToken: isBrowser,
-    persistSession: isBrowser,
-    detectSessionInUrl: false,
+    // Keep sessions across reloads on both web and native
+    autoRefreshToken: true,
+    persistSession: true,
+    // For OAuth (e.g. Google) on web, Supabase needs to read the session
+    // from the URL fragment after redirect. On native, this should stay false.
+    detectSessionInUrl: isWeb,
     lock: noOpLock,
   },
 });

@@ -15,13 +15,14 @@ import {
 } from "react-native";
 
 export default function LoginScreen() {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const router = useRouter();
   const { colors, isDarkMode } = useTheme();
   const { height } = useWindowDimensions();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const compact = height < 700;
   const contentScale = Math.min(1, Math.max(0.9, height / 820));
 
@@ -41,13 +42,18 @@ export default function LoginScreen() {
 
     try {
       setError("");
+      setLoading(true);
       await login(normalizedEmail, password);
+      // After a successful login, send the user into the main app.
+      router.replace("/(tabs)");
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
           : "Unable to login. Please try again.",
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -143,6 +149,15 @@ export default function LoginScreen() {
             />
           </View>
 
+          <TouchableOpacity
+            style={styles.forgotRow}
+            onPress={() => router.push("/forgot-password")}
+          >
+            <Text style={[styles.forgotText, { color: colors.primary }]}>
+              Forgot password?
+            </Text>
+          </TouchableOpacity>
+
           {!!error && (
             <Text style={[styles.errorText, { color: colors.danger }]}>
               {error}
@@ -152,11 +167,42 @@ export default function LoginScreen() {
           <TouchableOpacity
             style={[styles.button, { backgroundColor: colors.primary }]}
             onPress={handleLogin}
+            disabled={loading}
             accessibilityLabel="Login"
             accessibilityRole="button"
             accessibilityHint="Sign in with your email and password"
           >
-            <Text style={styles.buttonText}>Login</Text>
+            <Text style={styles.buttonText}>
+              {loading ? "Logging in..." : "Login"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.googleButton, { borderColor: colors.border }]}
+            onPress={async () => {
+              if (loading) return;
+              setError("");
+              try {
+                setLoading(true);
+                await loginWithGoogle();
+                // After successful OAuth redirect/return, send user into main app.
+                router.replace("/(tabs)");
+              } catch (err) {
+                setError(
+                  err instanceof Error
+                    ? err.message
+                    : "Unable to login with Google.",
+                );
+              } finally {
+                setLoading(false);
+              }
+            }}
+            accessibilityLabel="Login with Google"
+            accessibilityRole="button"
+          >
+            <Text style={[styles.googleButtonText, { color: colors.text }]}>
+              Continue with Google
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -223,6 +269,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 4,
   },
+  forgotRow: {
+    alignItems: "flex-end",
+    marginTop: 4,
+  },
+  forgotText: {
+    fontSize: 13,
+    fontWeight: "500" as const,
+  },
   button: {
     marginTop: 6,
     borderRadius: 12,
@@ -232,6 +286,17 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#FFFFFF",
     fontSize: 16,
+    fontWeight: "600" as const,
+  },
+  googleButton: {
+    marginTop: 8,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderWidth: 1,
+  },
+  googleButtonText: {
+    fontSize: 15,
     fontWeight: "600" as const,
   },
   linkButton: {

@@ -1,5 +1,5 @@
 drop table if exists public.profiles cascade;
-
+fg
 drop function if exists public.handle_new_user() cascade;
 
 create table public.profiles (
