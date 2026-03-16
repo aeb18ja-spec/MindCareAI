@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+    ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
     StyleSheet,
@@ -14,109 +15,25 @@ import {
     View,
 } from "react-native";
 
-/** Format as dd-mm-yyyy, auto-insert "-" after dd and mm. Only allows digits; max 8 digits. */
-function formatDobDisplay(raw: string): string {
-  const digits = raw.replace(/\D/g, "").slice(0, 8);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 4) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4)}`;
-}
-
-/** Convert dd-mm-yyyy to yyyy-mm-dd for API. */
-function dobDisplayToISO(display: string): string {
-  const match = display.trim().match(/^(\d{2})-(\d{2})-(\d{4})$/);
-  if (!match) return "";
-  const [, d, m, y] = match;
-  return `${y}-${m}-${d}`;
-}
-
 export default function SignupScreen() {
-  const { signup } = useAuth();
+  const { signup, loginWithGoogle } = useAuth();
   const router = useRouter();
   const { colors, isDarkMode } = useTheme();
   const { width, height: viewportHeight } = useWindowDimensions();
-  const compact = viewportHeight < 760;
-  const twoColumn = width >= 380;
-  const contentScale = Math.min(1, Math.max(0.78, viewportHeight / 900));
+  const compact = viewportHeight < 700;
+  const contentScale = Math.min(1, Math.max(0.9, viewportHeight / 820));
 
-  const [name, setName] = useState("");
-  const [dob, setDob] = useState("");
-  const [weight, setWeight] = useState("");
-  const [profileHeight, setProfileHeight] = useState("");
-  const [sleepingHours, setSleepingHours] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSignup = async () => {
-    const normalizedName = name.trim();
     const normalizedEmail = email.trim().toLowerCase();
-    const dobTrimmed = dob.trim();
-    const parsedWeight = Number(weight);
-    const parsedHeight = Number(profileHeight);
-    const parsedSleepingHours = Number(sleepingHours);
 
-    if (
-      !normalizedName ||
-      !dobTrimmed ||
-      !weight.trim() ||
-      !profileHeight.trim() ||
-      !sleepingHours.trim() ||
-      !normalizedEmail ||
-      !password.trim() ||
-      !confirmPassword.trim()
-    ) {
+    if (!normalizedEmail || !password.trim() || !confirmPassword.trim()) {
       setError("Please fill in all fields.");
-      return;
-    }
-
-    const dobISO = dobDisplayToISO(dobTrimmed);
-    const dobRegex = /^\d{2}-\d{2}-\d{4}$/;
-    if (!dobRegex.test(dobTrimmed) || !dobISO) {
-      setError("Please enter date of birth as DD-MM-YYYY (e.g. 15-03-1990).");
-      return;
-    }
-    const dobDate = new Date(dobISO);
-    if (Number.isNaN(dobDate.getTime())) {
-      setError("Please enter a valid date of birth.");
-      return;
-    }
-    const today = new Date();
-    if (dobDate > today) {
-      setError("Date of birth cannot be in the future.");
-      return;
-    }
-    const minDate = new Date(today.getFullYear() - 120, 0, 1);
-    if (dobDate < minDate) {
-      setError("Please enter a valid date of birth.");
-      return;
-    }
-
-    if (
-      !Number.isFinite(parsedWeight) ||
-      parsedWeight <= 0 ||
-      parsedWeight > 500
-    ) {
-      setError("Please enter a valid weight.");
-      return;
-    }
-
-    if (
-      !Number.isFinite(parsedHeight) ||
-      parsedHeight <= 0 ||
-      parsedHeight > 300
-    ) {
-      setError("Please enter a valid height.");
-      return;
-    }
-
-    if (
-      !Number.isFinite(parsedSleepingHours) ||
-      parsedSleepingHours < 0 ||
-      parsedSleepingHours > 24
-    ) {
-      setError("Please enter valid sleeping hours.");
       return;
     }
 
@@ -138,27 +55,35 @@ export default function SignupScreen() {
 
     try {
       setError("");
-      await signup(
-        normalizedName,
-        dobISO,
-        parsedWeight,
-        parsedHeight,
-        parsedSleepingHours,
-        normalizedEmail,
-        password,
-      );
+      setLoading(true);
+
+      // Send OTP first
+      const otpServerUrl = process.env.EXPO_PUBLIC_OTP_SERVER_URL || "http://localhost:3001";
+      const otpRes = await fetch(`${otpServerUrl}/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
+
+      const otpData = await otpRes.json();
+      if (!otpRes.ok) {
+        setError(otpData.error || "Failed to send verification code.");
+        return;
+      }
+
+      // Navigate to OTP verification screen with email and password
+      router.push({
+        pathname: "/verify-otp" as any,
+        params: { email: normalizedEmail, password },
+      });
     } catch (err) {
       const message =
         err instanceof Error
           ? err.message
           : "Unable to sign up. Please try again.";
-
-      if (message.includes("Please confirm your email")) {
-        router.replace("/login");
-        return;
-      }
-
       setError(message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -183,15 +108,15 @@ export default function SignupScreen() {
               transform: [{ scale: contentScale }],
               backgroundColor: colors.card,
               borderColor: colors.border,
-              padding: compact ? 16 : 22,
-              gap: compact ? 6 : 8,
+              padding: compact ? 18 : 24,
+              gap: compact ? 8 : 12,
             },
           ]}
         >
           <Text
             style={[
               styles.title,
-              { color: colors.text, fontSize: compact ? 22 : 28 },
+              { color: colors.text, fontSize: compact ? 24 : 28 },
             ]}
           >
             Create Account
@@ -199,159 +124,11 @@ export default function SignupScreen() {
           <Text
             style={[
               styles.subtitle,
-              { color: colors.textSecondary, marginBottom: compact ? 6 : 10 },
+              { color: colors.textSecondary, marginBottom: compact ? 8 : 14 },
             ]}
           >
             Sign up to continue
           </Text>
-
-          <View style={styles.formGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>
-              Name
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  color: colors.text,
-                  borderColor: colors.border,
-                  backgroundColor: colors.background,
-                  paddingVertical: compact ? 8 : 10,
-                },
-              ]}
-              placeholder="Your full name"
-              placeholderTextColor={colors.textSecondary}
-              value={name}
-              onChangeText={setName}
-              accessibilityLabel="Full name"
-              accessibilityHint="Enter your full name"
-            />
-          </View>
-
-          <View style={[styles.row, !twoColumn && styles.rowStack]}>
-            <View
-              style={[
-                styles.formGroup,
-                styles.rowItem,
-                !twoColumn && styles.rowItemStack,
-              ]}
-            >
-              <Text style={[styles.label, { color: colors.textSecondary }]}>
-                Date of birth
-              </Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    color: colors.text,
-                    borderColor: colors.border,
-                    backgroundColor: colors.background,
-                    paddingVertical: compact ? 8 : 10,
-                  },
-                ]}
-                placeholder="DD-MM-YYYY"
-                placeholderTextColor={colors.textSecondary}
-                value={dob}
-                onChangeText={(text) => setDob(formatDobDisplay(text))}
-                keyboardType="numeric"
-                maxLength={10}
-                accessibilityLabel="Date of birth"
-                accessibilityHint="Enter your date of birth as DD-MM-YYYY; dashes are added automatically"
-              />
-            </View>
-
-            <View
-              style={[
-                styles.formGroup,
-                styles.rowItem,
-                !twoColumn && styles.rowItemStack,
-              ]}
-            >
-              <Text style={[styles.label, { color: colors.textSecondary }]}>
-                Weight (kg)
-              </Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    color: colors.text,
-                    borderColor: colors.border,
-                    backgroundColor: colors.background,
-                    paddingVertical: compact ? 8 : 10,
-                  },
-                ]}
-                placeholder="Weight"
-                placeholderTextColor={colors.textSecondary}
-                value={weight}
-                onChangeText={setWeight}
-                accessibilityLabel="Weight in kilograms"
-                accessibilityHint="Enter your weight"
-                keyboardType="numeric"
-              />
-            </View>
-          </View>
-
-          <View style={[styles.row, !twoColumn && styles.rowStack]}>
-            <View
-              style={[
-                styles.formGroup,
-                styles.rowItem,
-                !twoColumn && styles.rowItemStack,
-              ]}
-            >
-              <Text style={[styles.label, { color: colors.textSecondary }]}>
-                Height (cm)
-              </Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    color: colors.text,
-                    borderColor: colors.border,
-                    backgroundColor: colors.background,
-                    paddingVertical: compact ? 8 : 10,
-                  },
-                ]}
-                placeholder="Height"
-                placeholderTextColor={colors.textSecondary}
-                value={profileHeight}
-                onChangeText={setProfileHeight}
-                keyboardType="numeric"
-                accessibilityLabel="Height in centimeters"
-                accessibilityHint="Enter your height"
-              />
-            </View>
-
-            <View
-              style={[
-                styles.formGroup,
-                styles.rowItem,
-                !twoColumn && styles.rowItemStack,
-              ]}
-            >
-              <Text style={[styles.label, { color: colors.textSecondary }]}>
-                Sleep (hrs)
-              </Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    color: colors.text,
-                    borderColor: colors.border,
-                    backgroundColor: colors.background,
-                    paddingVertical: compact ? 8 : 10,
-                  },
-                ]}
-                placeholder="Sleep"
-                placeholderTextColor={colors.textSecondary}
-                value={sleepingHours}
-                onChangeText={setSleepingHours}
-                keyboardType="numeric"
-                accessibilityLabel="Sleep hours per night"
-                accessibilityHint="Enter average hours of sleep"
-              />
-            </View>
-          </View>
 
           <View style={styles.formGroup}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>
@@ -364,7 +141,7 @@ export default function SignupScreen() {
                   color: colors.text,
                   borderColor: colors.border,
                   backgroundColor: colors.background,
-                  paddingVertical: compact ? 8 : 10,
+                  paddingVertical: compact ? 10 : 12,
                 },
               ]}
               placeholder="you@example.com"
@@ -378,66 +155,52 @@ export default function SignupScreen() {
             />
           </View>
 
-          <View style={[styles.row, !twoColumn && styles.rowStack]}>
-            <View
+          <View style={styles.formGroup}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Password
+            </Text>
+            <TextInput
               style={[
-                styles.formGroup,
-                styles.rowItem,
-                !twoColumn && styles.rowItemStack,
+                styles.input,
+                {
+                  color: colors.text,
+                  borderColor: colors.border,
+                  backgroundColor: colors.background,
+                  paddingVertical: compact ? 10 : 12,
+                },
               ]}
-            >
-              <Text style={[styles.label, { color: colors.textSecondary }]}>
-                Password
-              </Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    color: colors.text,
-                    borderColor: colors.border,
-                    backgroundColor: colors.background,
-                    paddingVertical: compact ? 8 : 10,
-                  },
-                ]}
-                placeholder="Password"
-                placeholderTextColor={colors.textSecondary}
-                value={password}
-                accessibilityLabel="Password"
-                accessibilityHint="Enter at least 6 characters"
-                onChangeText={setPassword}
-                secureTextEntry
-              />
-            </View>
+              placeholder="At least 6 characters"
+              placeholderTextColor={colors.textSecondary}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              accessibilityLabel="Password"
+              accessibilityHint="Enter at least 6 characters"
+            />
+          </View>
 
-            <View
+          <View style={styles.formGroup}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Confirm Password
+            </Text>
+            <TextInput
               style={[
-                styles.formGroup,
-                styles.rowItem,
-                !twoColumn && styles.rowItemStack,
+                styles.input,
+                {
+                  color: colors.text,
+                  borderColor: colors.border,
+                  backgroundColor: colors.background,
+                  paddingVertical: compact ? 10 : 12,
+                },
               ]}
-            >
-              <Text style={[styles.label, { color: colors.textSecondary }]}>
-                Confirm
-              </Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    color: colors.text,
-                    borderColor: colors.border,
-                    backgroundColor: colors.background,
-                    paddingVertical: compact ? 8 : 10,
-                  },
-                ]}
-                placeholder="Confirm"
-                placeholderTextColor={colors.textSecondary}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-                accessibilityLabel="Confirm password"
-                accessibilityHint="Re-enter your password"
-              />
-            </View>
+              placeholder="Re-enter your password"
+              placeholderTextColor={colors.textSecondary}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              accessibilityLabel="Confirm password"
+              accessibilityHint="Re-enter your password"
+            />
           </View>
 
           {!!error && (
@@ -449,14 +212,19 @@ export default function SignupScreen() {
           <TouchableOpacity
             style={[
               styles.button,
-              { backgroundColor: colors.primary, marginTop: compact ? 4 : 6 },
+              { backgroundColor: colors.primary, marginTop: compact ? 4 : 8 },
             ]}
             onPress={handleSignup}
+            disabled={loading}
             accessibilityLabel="Sign up"
             accessibilityRole="button"
             accessibilityHint="Create your account"
           >
-            <Text style={styles.buttonText}>Sign Up</Text>
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={styles.buttonText}>Sign Up</Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -468,6 +236,40 @@ export default function SignupScreen() {
           >
             <Text style={[styles.linkText, { color: colors.primary }]}>
               Already registered? Login
+            </Text>
+          </TouchableOpacity>
+
+          {/* Or divider */}
+          <View style={styles.dividerRow}>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            <Text style={[styles.dividerText, { color: colors.textSecondary }]}>or</Text>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.googleButton, { borderColor: colors.border }]}
+            onPress={async () => {
+              if (loading) return;
+              setError("");
+              try {
+                setLoading(true);
+                await loginWithGoogle();
+                // Layout will redirect to complete-profile for new Google users
+              } catch (err) {
+                setError(
+                  err instanceof Error
+                    ? err.message
+                    : "Unable to sign up with Google.",
+                );
+              } finally {
+                setLoading(false);
+              }
+            }}
+            accessibilityLabel="Sign up with Google"
+            accessibilityRole="button"
+          >
+            <Text style={[styles.googleButtonText, { color: colors.text }]}>
+              Continue with Google
             </Text>
           </TouchableOpacity>
         </View>
@@ -491,11 +293,11 @@ const styles = StyleSheet.create({
   },
   card: {
     width: "100%",
-    maxWidth: 460,
+    maxWidth: 420,
     borderRadius: 16,
     borderWidth: 1,
     padding: 24,
-    gap: 10,
+    gap: 12,
   },
   title: {
     fontSize: 28,
@@ -509,20 +311,6 @@ const styles = StyleSheet.create({
   },
   formGroup: {
     gap: 6,
-  },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  rowStack: {
-    flexDirection: "column",
-    gap: 8,
-  },
-  rowItem: {
-    flex: 1,
-  },
-  rowItemStack: {
-    width: "100%",
   },
   label: {
     fontSize: 14,
@@ -540,7 +328,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   button: {
-    marginTop: 6,
+    marginTop: 8,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
@@ -556,6 +344,30 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 14,
+    fontWeight: "600" as const,
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginVertical: 2,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    fontSize: 13,
+    fontWeight: "500" as const,
+  },
+  googleButton: {
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center" as const,
+    borderWidth: 1,
+  },
+  googleButtonText: {
+    fontSize: 15,
     fontWeight: "600" as const,
   },
 });

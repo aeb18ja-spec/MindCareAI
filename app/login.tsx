@@ -44,14 +44,21 @@ export default function LoginScreen() {
       setError("");
       setLoading(true);
       await login(normalizedEmail, password);
-      // After a successful login, send the user into the main app.
-      router.replace("/(tabs)");
+      // Layout will handle routing based on profileComplete
     } catch (err) {
-      setError(
+      const rawMsg =
         err instanceof Error
           ? err.message
-          : "Unable to login. Please try again.",
-      );
+          : "Unable to login. Please try again.";
+
+      // Friendlier error messages
+      if (rawMsg.includes("Invalid login credentials")) {
+        setError("No account found with this email, or incorrect password. Please sign up if you don't have an account.");
+      } else if (rawMsg.includes("Email not confirmed")) {
+        setError("Please verify your email before logging in.");
+      } else {
+        setError(rawMsg);
+      }
     } finally {
       setLoading(false);
     }
@@ -185,8 +192,7 @@ export default function LoginScreen() {
               try {
                 setLoading(true);
                 await loginWithGoogle();
-                // After successful OAuth redirect/return, send user into main app.
-                router.replace("/(tabs)");
+                // Layout will handle routing based on profileComplete
               } catch (err) {
                 setError(
                   err instanceof Error

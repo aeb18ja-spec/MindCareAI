@@ -16,25 +16,42 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
+const PRE_AUTH_SCREENS = ["login", "signup", "verify-otp"];
+
 function RootLayoutNav() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, profileComplete } = useAuth();
   const router = useRouter();
   const segments = useSegments();
 
   useEffect(() => {
     if (isLoading) return;
 
-    const isOnAuthScreen = segments[0] === "login" || segments[0] === "signup";
+    const currentScreen = segments[0] ?? "";
+    const isOnPreAuthScreen = PRE_AUTH_SCREENS.includes(currentScreen);
 
-    if (!isAuthenticated && !isOnAuthScreen) {
+    // Not authenticated and not on a pre-auth screen → go to login
+    if (!isAuthenticated && !isOnPreAuthScreen && currentScreen !== "complete-profile") {
       router.replace("/login");
       return;
     }
 
-    if (isAuthenticated && isOnAuthScreen) {
-      router.replace("/(tabs)");
+    // Authenticated but on a pre-auth screen (login/signup/verify-otp)
+    if (isAuthenticated && isOnPreAuthScreen) {
+      if (profileComplete) {
+        router.replace("/(tabs)");
+      } else {
+        router.replace("/complete-profile" as any);
+      }
+      return;
     }
-  }, [isAuthenticated, isLoading, segments, router]);
+
+    // Authenticated with INCOMPLETE profile on any other screen → redirect to complete-profile
+    // This catches Google OAuth users who land on /(tabs) after redirect
+    if (isAuthenticated && !profileComplete && currentScreen !== "complete-profile") {
+      router.replace("/complete-profile" as any);
+      return;
+    }
+  }, [isAuthenticated, isLoading, profileComplete, segments, router]);
 
   if (isLoading) {
     return <View style={{ flex: 1 }} />;
@@ -45,6 +62,8 @@ function RootLayoutNav() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="signup" options={{ headerShown: false }} />
+        <Stack.Screen name="verify-otp" options={{ headerShown: false }} />
+        <Stack.Screen name="complete-profile" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="mood-detail/[id]"
@@ -52,7 +71,7 @@ function RootLayoutNav() {
         />
         <Stack.Screen name="profile" options={{ headerShown: false }} />
       </Stack>
-      {isAuthenticated && <ChatFloatingButton />}
+      {isAuthenticated && profileComplete && <ChatFloatingButton />}
     </>
   );
 }

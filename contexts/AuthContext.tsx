@@ -25,10 +25,25 @@ export function getAgeFromDob(dob: string | null | undefined): number {
   return Math.max(0, age);
 }
 
+/** Check whether a profile has been completed (has real DOB, weight, height). */
+function isProfileComplete(profile: AuthUser | null): boolean {
+  if (!profile) return false;
+  // Profile is complete when DOB is set to something other than fallback,
+  // and weight & height are non-zero.
+  const hasDob =
+    !!profile.dob &&
+    profile.dob !== "" &&
+    !profile.dob.endsWith("-01-01");
+  const hasWeight = profile.weight > 0;
+  const hasHeight = profile.height > 0;
+  return hasDob && hasWeight && hasHeight;
+}
+
 export const [AuthProvider, useAuth] = createContextHook(() => {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [profileComplete, setProfileComplete] = useState(false);
 
   const ensureProfile = useCallback(
     async (user: {
@@ -41,22 +56,15 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         typeof metadata.name === "string" && metadata.name.trim().length > 0
           ? metadata.name.trim()
           : "User";
-      const rawDob =
-        (typeof metadata.dob === "string" && metadata.dob.trim()) ? metadata.dob.trim() :
-        (typeof metadata.date_of_birth === "string" && metadata.date_of_birth.trim()) ? metadata.date_of_birth.trim() : "";
-      const dobToWrite = rawDob || `${new Date().getFullYear()}-01-01`;
-      const weight = Number(metadata.weight ?? 0);
-      const height = Number(metadata.height ?? 0);
-      const sleepingHours = Number(metadata.sleeping_hours ?? 0);
 
       const { error } = await supabase.from("profiles").upsert(
         {
           id: user.id,
           name,
-          dob: dobToWrite,
-          weight: Number.isFinite(weight) ? weight : 0,
-          height: Number.isFinite(height) ? height : 0,
-          sleeping_hours: Number.isFinite(sleepingHours) ? sleepingHours : 0,
+          dob: `${new Date().getFullYear()}-01-01`,
+          weight: 0,
+          height: 0,
+          sleeping_hours: 0,
         },
         { onConflict: "id" },
       );
@@ -123,9 +131,11 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
           setCurrentUser(profile);
           setIsAuthenticated(true);
+          setProfileComplete(isProfileComplete(profile));
         } else {
           setCurrentUser(null);
           setIsAuthenticated(false);
+          setProfileComplete(false);
         }
       } finally {
         setIsLoading(false);
@@ -138,6 +148,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         if (event === "SIGNED_OUT" || !session?.user) {
           setCurrentUser(null);
           setIsAuthenticated(false);
+          setProfileComplete(false);
           setIsLoading(false);
           return;
         }
@@ -157,6 +168,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
         setCurrentUser(profile);
         setIsAuthenticated(true);
+        setProfileComplete(isProfileComplete(profile));
         setIsLoading(false);
       },
     );
@@ -198,30 +210,12 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   }, []);
 
   const signup = useCallback(
-    async (
-      name: string,
-      dob: string,
-      weight: number,
-      height: number,
-      sleepingHours: number,
-      email: string,
-      password: string,
-    ) => {
+    async (email: string, password: string) => {
       const normalizedEmail = email.trim().toLowerCase();
-      const dobTrimmed = dob.trim();
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: normalizedEmail,
         password,
-        options: {
-          data: {
-            name: name.trim(),
-            dob: dobTrimmed,
-            weight,
-            height,
-            sleeping_hours: sleepingHours,
-          },
-        },
       });
 
       if (authError) {
@@ -233,29 +227,88 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         throw new Error("Signup succeeded but no user was returned.");
       }
 
-      if (authData.session) {
-        const { error: profileError } = await supabase.from("profiles").upsert(
-          {
-            id: user.id,
-            name: name.trim(),
-            dob: dobTrimmed,
-            weight,
-            height,
-            sleeping_hours: sleepingHours,
-          },
-          { onConflict: "id" },
-        );
-
-        if (profileError) {
-          throw new Error(profileError.message);
-        }
-      } else {
+      // Supabase returns an empty identities array when the email is already taken
+      // (with email confirmation enabled, it doesn't return an error for security)
+      if (!user.identities || user.identities.length === 0) {
         throw new Error(
-          "Signup successful. Please confirm your email, then log in.",
+          "An account with this email already exists. Please login instead.",
         );
+      }
+
+      // If Supabase has email confirmation enabled, there won't be a session.
+      // Since we've already verified the email via our own OTP, auto-login.
+      if (!authData.session) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password,
+        });
+
+        if (signInError) {
+          // If login fails (e.g., Supabase email confirmation blocks it),
+          // throw a descriptive error
+          throw new Error(
+            "Account created but auto-login failed: " + signInError.message,
+          );
+        }
+      }
+
+      // Now we should have an active session — create a minimal profile
+      const { error: profileError } = await supabase.from("profiles").upsert(
+        {
+          id: user.id,
+          name: "User",
+          dob: `${new Date().getFullYear()}-01-01`,
+          weight: 0,
+          height: 0,
+          sleeping_hours: 0,
+        },
+        { onConflict: "id" },
+      );
+
+      if (profileError) {
+        throw new Error(profileError.message);
       }
     },
     [],
+  );
+
+  const updateProfile = useCallback(
+    async (data: {
+      name?: string;
+      dob?: string;
+      weight?: number;
+      height?: number;
+      sleepingHours?: number;
+    }) => {
+      if (!currentUser) {
+        throw new Error("No authenticated user.");
+      }
+
+      const updatePayload: Record<string, unknown> = {};
+      if (data.name !== undefined) updatePayload.name = data.name;
+      if (data.dob !== undefined) updatePayload.dob = data.dob;
+      if (data.weight !== undefined) updatePayload.weight = data.weight;
+      if (data.height !== undefined) updatePayload.height = data.height;
+      if (data.sleepingHours !== undefined)
+        updatePayload.sleeping_hours = data.sleepingHours;
+
+      const { error } = await supabase
+        .from("profiles")
+        .update(updatePayload)
+        .eq("id", currentUser.id);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Refresh profile
+      const updated = await fetchProfile(currentUser.id, currentUser.email);
+      if (updated) {
+        setCurrentUser(updated);
+        setProfileComplete(isProfileComplete(updated));
+      }
+    },
+    [currentUser, fetchProfile],
   );
 
   const logout = useCallback(async () => {
@@ -270,10 +323,12 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     currentUser,
     isAuthenticated,
     isLoading,
+    profileComplete,
     login,
     loginWithGoogle,
     sendPasswordReset,
     signup,
+    updateProfile,
     logout,
   };
 });
