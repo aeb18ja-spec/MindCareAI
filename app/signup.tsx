@@ -2,11 +2,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { Brain, Lock, Mail, ShieldCheck } from "lucide-react-native";
 import { useState } from "react";
 import {
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -15,6 +17,106 @@ import {
     View,
 } from "react-native";
 
+/* ------------------------------------------------------------------ */
+/*  Floating abstract shapes – purely visual, static                  */
+/* ------------------------------------------------------------------ */
+function FloatingShapes({ isDarkMode }: { isDarkMode: boolean }) {
+  const baseColor = isDarkMode ? "rgba(139,125,255," : "rgba(255,255,255,";
+  return (
+    <View style={styles.shapesContainer} pointerEvents="none">
+      {/* Large soft circle – top-left */}
+      <View
+        style={[
+          styles.shape,
+          {
+            width: 180,
+            height: 180,
+            borderRadius: 90,
+            backgroundColor: baseColor + "0.07)",
+            top: -40,
+            left: -60,
+          },
+        ]}
+      />
+      {/* Medium pill – top-right */}
+      <View
+        style={[
+          styles.shape,
+          {
+            width: 120,
+            height: 200,
+            borderRadius: 60,
+            backgroundColor: baseColor + "0.06)",
+            top: 60,
+            right: -30,
+            transform: [{ rotate: "25deg" }],
+          },
+        ]}
+      />
+      {/* Small circle – mid-left */}
+      <View
+        style={[
+          styles.shape,
+          {
+            width: 70,
+            height: 70,
+            borderRadius: 35,
+            backgroundColor: baseColor + "0.10)",
+            top: "40%",
+            left: 20,
+          },
+        ]}
+      />
+      {/* Tiny circle accent */}
+      <View
+        style={[
+          styles.shape,
+          {
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: baseColor + "0.15)",
+            top: "30%",
+            right: 40,
+          },
+        ]}
+      />
+      {/* Large soft blob – bottom-right */}
+      <View
+        style={[
+          styles.shape,
+          {
+            width: 220,
+            height: 220,
+            borderRadius: 110,
+            backgroundColor: baseColor + "0.06)",
+            bottom: -80,
+            right: -70,
+          },
+        ]}
+      />
+      {/* Medium blob – bottom-left */}
+      <View
+        style={[
+          styles.shape,
+          {
+            width: 100,
+            height: 160,
+            borderRadius: 50,
+            backgroundColor: baseColor + "0.08)",
+            bottom: 40,
+            left: -30,
+            transform: [{ rotate: "-15deg" }],
+          },
+        ]}
+      />
+    </View>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Signup Screen                                                     */
+/* ------------------------------------------------------------------ */
 export default function SignupScreen() {
   const { signup, loginWithGoogle } = useAuth();
   const router = useRouter();
@@ -87,6 +189,37 @@ export default function SignupScreen() {
     }
   };
 
+  const handleGoogleSignup = async () => {
+    if (loading) return;
+    setError("");
+    try {
+      setLoading(true);
+      await loginWithGoogle();
+      // Layout will redirect to complete-profile for new Google users
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to sign up with Google.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ---- derived styles ---- */
+  const cardShadow = isDarkMode
+    ? {}
+    : {
+        shadowColor: "#6C63FF",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.12,
+        shadowRadius: 28,
+        elevation: 14,
+      };
+
+  const inputBg = isDarkMode ? colors.surface : colors.borderLight;
+
   return (
     <LinearGradient
       colors={
@@ -95,279 +228,501 @@ export default function SignupScreen() {
           string,
         ]
       }
-      style={styles.container}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.gradient}
     >
+      {/* Floating abstract shapes */}
+      <FloatingShapes isDarkMode={isDarkMode} />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.keyboardWrapper}
+        style={styles.flex}
       >
-        <View
-          style={[
-            styles.card,
-            {
-              transform: [{ scale: contentScale }],
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              padding: compact ? 18 : 24,
-              gap: compact ? 8 : 12,
-            },
-          ]}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text
-            style={[
-              styles.title,
-              { color: colors.text, fontSize: compact ? 24 : 28 },
-            ]}
-          >
-            Create Account
-          </Text>
-          <Text
-            style={[
-              styles.subtitle,
-              { color: colors.textSecondary, marginBottom: compact ? 8 : 14 },
-            ]}
-          >
-            Sign up to continue
-          </Text>
+          {/* -------- Branding Section -------- */}
+          <View style={[styles.brandSection, { paddingTop: compact ? 40 : 56 }]}>
+            {/* Outer glow ring */}
+            <View style={[
+              styles.brandGlowRing,
+              {
+                borderColor: isDarkMode
+                  ? "rgba(139,125,255,0.20)"
+                  : "rgba(255,255,255,0.25)",
+              },
+            ]}>
+              {/* Gradient icon circle */}
+              <LinearGradient
+                colors={
+                  isDarkMode
+                    ? ["rgba(139,125,255,0.30)", "rgba(108,99,255,0.15)"]
+                    : ["rgba(255,255,255,0.35)", "rgba(255,255,255,0.18)"]
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.brandIconCircle}
+              >
+                <Brain
+                  size={compact ? 34 : 38}
+                  color={isDarkMode ? colors.primary : "#FFFFFF"}
+                  strokeWidth={1.8}
+                />
+              </LinearGradient>
+            </View>
 
-          <View style={styles.formGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>
-              Email
-            </Text>
-            <TextInput
+            <Text
               style={[
-                styles.input,
+                styles.brandTitle,
                 {
-                  color: colors.text,
-                  borderColor: colors.border,
-                  backgroundColor: colors.background,
-                  paddingVertical: compact ? 10 : 12,
+                  color: isDarkMode ? colors.text : "#FFFFFF",
+                  fontSize: compact ? 30 : 34,
                 },
               ]}
-              placeholder="you@example.com"
-              placeholderTextColor={colors.textSecondary}
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              accessibilityLabel="Email address"
-              accessibilityHint="Enter your email"
-            />
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>
-              Password
+            >
+              MindCareAI
             </Text>
-            <TextInput
+            <Text
               style={[
-                styles.input,
+                styles.brandTagline,
                 {
-                  color: colors.text,
-                  borderColor: colors.border,
-                  backgroundColor: colors.background,
-                  paddingVertical: compact ? 10 : 12,
+                  color: isDarkMode
+                    ? colors.textSecondary
+                    : "rgba(255,255,255,0.78)",
                 },
               ]}
-              placeholder="At least 6 characters"
-              placeholderTextColor={colors.textSecondary}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              accessibilityLabel="Password"
-              accessibilityHint="Enter at least 6 characters"
-            />
+            >
+              Your AI Mental Wellness Companion
+            </Text>
           </View>
 
-          <View style={styles.formGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>
-              Confirm Password
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  color: colors.text,
-                  borderColor: colors.border,
-                  backgroundColor: colors.background,
-                  paddingVertical: compact ? 10 : 12,
-                },
-              ]}
-              placeholder="Re-enter your password"
-              placeholderTextColor={colors.textSecondary}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              accessibilityLabel="Confirm password"
-              accessibilityHint="Re-enter your password"
-            />
-          </View>
-
-          {!!error && (
-            <Text style={[styles.errorText, { color: colors.danger }]}>
-              {error}
-            </Text>
-          )}
-
-          <TouchableOpacity
+          {/* -------- Card -------- */}
+          <View
             style={[
-              styles.button,
-              { backgroundColor: colors.primary, marginTop: compact ? 4 : 8 },
+              styles.card,
+              cardShadow,
+              {
+                backgroundColor: colors.card,
+                borderColor: isDarkMode ? colors.border : "transparent",
+                borderWidth: isDarkMode ? 1 : 0,
+                padding: compact ? 22 : 28,
+              },
             ]}
-            onPress={handleSignup}
-            disabled={loading}
-            accessibilityLabel="Sign up"
-            accessibilityRole="button"
-            accessibilityHint="Create your account"
           >
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text style={styles.buttonText}>Sign Up</Text>
+            {/* Card heading */}
+            <Text style={[styles.cardTitle, { color: colors.text }]}>
+              Create Account
+            </Text>
+            <Text
+              style={[
+                styles.cardSubtitle,
+                { color: colors.textSecondary, marginBottom: compact ? 18 : 24 },
+              ]}
+            >
+              Join MindCareAI and start your wellness journey
+            </Text>
+
+            {/* ---- Email Input ---- */}
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                Email
+              </Text>
+              <View
+                style={[
+                  styles.inputRow,
+                  {
+                    backgroundColor: inputBg,
+                    borderColor: isDarkMode ? colors.border : "transparent",
+                    borderWidth: isDarkMode ? 1 : 0,
+                  },
+                ]}
+              >
+                <View style={styles.inputIconWrap}>
+                  <Mail size={18} color={colors.textMuted} strokeWidth={1.8} />
+                </View>
+                <TextInput
+                  style={[
+                    styles.inputField,
+                    {
+                      color: colors.text,
+                      paddingVertical: compact ? 13 : 15,
+                    },
+                  ]}
+                  placeholder="you@example.com"
+                  placeholderTextColor={colors.textMuted}
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  accessibilityLabel="Email address"
+                  accessibilityHint="Enter your email"
+                />
+              </View>
+            </View>
+
+            {/* ---- Password Input ---- */}
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                Password
+              </Text>
+              <View
+                style={[
+                  styles.inputRow,
+                  {
+                    backgroundColor: inputBg,
+                    borderColor: isDarkMode ? colors.border : "transparent",
+                    borderWidth: isDarkMode ? 1 : 0,
+                  },
+                ]}
+              >
+                <View style={styles.inputIconWrap}>
+                  <Lock size={18} color={colors.textMuted} strokeWidth={1.8} />
+                </View>
+                <TextInput
+                  style={[
+                    styles.inputField,
+                    {
+                      color: colors.text,
+                      paddingVertical: compact ? 13 : 15,
+                    },
+                  ]}
+                  placeholder="At least 6 characters"
+                  placeholderTextColor={colors.textMuted}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  accessibilityLabel="Password"
+                  accessibilityHint="Enter at least 6 characters"
+                />
+              </View>
+            </View>
+
+            {/* ---- Confirm Password Input ---- */}
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                Confirm Password
+              </Text>
+              <View
+                style={[
+                  styles.inputRow,
+                  {
+                    backgroundColor: inputBg,
+                    borderColor: isDarkMode ? colors.border : "transparent",
+                    borderWidth: isDarkMode ? 1 : 0,
+                  },
+                ]}
+              >
+                <View style={styles.inputIconWrap}>
+                  <ShieldCheck size={18} color={colors.textMuted} strokeWidth={1.8} />
+                </View>
+                <TextInput
+                  style={[
+                    styles.inputField,
+                    {
+                      color: colors.text,
+                      paddingVertical: compact ? 13 : 15,
+                    },
+                  ]}
+                  placeholder="Re-enter your password"
+                  placeholderTextColor={colors.textMuted}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                  accessibilityLabel="Confirm password"
+                  accessibilityHint="Re-enter your password"
+                />
+              </View>
+            </View>
+
+            {/* ---- Error ---- */}
+            {!!error && (
+              <View
+                style={[
+                  styles.errorBanner,
+                  { backgroundColor: colors.dangerLight },
+                ]}
+              >
+                <Text style={[styles.errorText, { color: colors.danger }]}>
+                  {error}
+                </Text>
+              </View>
             )}
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => router.replace("/login")}
-            accessibilityLabel="Go to login"
-            accessibilityRole="link"
-            accessibilityHint="Already have an account"
-          >
-            <Text style={[styles.linkText, { color: colors.primary }]}>
-              Already registered? Login
-            </Text>
-          </TouchableOpacity>
+            {/* ---- Sign Up Button (gradient) ---- */}
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handleSignup}
+              disabled={loading}
+              accessibilityLabel="Sign up"
+              accessibilityRole="button"
+              accessibilityHint="Create your account"
+              style={{ marginTop: compact ? 6 : 10 }}
+            >
+              <LinearGradient
+                colors={colors.gradient.button as [string, string]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[styles.signupButton, loading && { opacity: 0.7 }]}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.signupButtonText}>Sign Up</Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
 
-          {/* Or divider */}
-          <View style={styles.dividerRow}>
-            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-            <Text style={[styles.dividerText, { color: colors.textSecondary }]}>or</Text>
-            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            {/* ---- Divider ---- */}
+            <View style={styles.dividerRow}>
+              <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+              <Text style={[styles.dividerText, { color: colors.textMuted }]}>
+                or
+              </Text>
+              <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            </View>
+
+            {/* ---- Google Button ---- */}
+            <TouchableOpacity
+              activeOpacity={0.75}
+              style={[
+                styles.googleButton,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: isDarkMode ? colors.surface : colors.card,
+                },
+              ]}
+              onPress={handleGoogleSignup}
+              accessibilityLabel="Sign up with Google"
+              accessibilityRole="button"
+            >
+              <View style={styles.googleGlyphWrap}>
+                <Text style={styles.googleGlyph}>G</Text>
+              </View>
+              <Text style={[styles.googleButtonText, { color: colors.text }]}>
+                Continue with Google
+              </Text>
+            </TouchableOpacity>
+
+            {/* ---- Login link ---- */}
+            <TouchableOpacity
+              style={styles.loginRow}
+              onPress={() => router.replace("/login")}
+              accessibilityLabel="Go to login"
+              accessibilityRole="link"
+              accessibilityHint="Already have an account"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={[styles.loginText, { color: colors.textSecondary }]}>
+                Already have an account?{" "}
+              </Text>
+              <Text style={[styles.loginLink, { color: colors.primary }]}>
+                Login
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={[styles.googleButton, { borderColor: colors.border }]}
-            onPress={async () => {
-              if (loading) return;
-              setError("");
-              try {
-                setLoading(true);
-                await loginWithGoogle();
-                // Layout will redirect to complete-profile for new Google users
-              } catch (err) {
-                setError(
-                  err instanceof Error
-                    ? err.message
-                    : "Unable to sign up with Google.",
-                );
-              } finally {
-                setLoading(false);
-              }
-            }}
-            accessibilityLabel="Sign up with Google"
-            accessibilityRole="button"
-          >
-            <Text style={[styles.googleButtonText, { color: colors.text }]}>
-              Continue with Google
-            </Text>
-          </TouchableOpacity>
-        </View>
+          {/* Bottom spacer for scroll bounce */}
+          <View style={{ height: 40 }} />
+        </ScrollView>
       </KeyboardAvoidingView>
     </LinearGradient>
   );
 }
 
+/* ================================================================== */
+/*  Styles                                                            */
+/* ================================================================== */
 const styles = StyleSheet.create({
-  container: {
+  /* layout */
+  flex: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
   },
-  keyboardWrapper: {
-    width: "100%",
+  gradient: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
   },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingBottom: 20,
+  },
+
+  /* floating abstract shapes */
+  shapesContainer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
+    overflow: "hidden",
+  },
+  shape: {
+    position: "absolute",
+  },
+
+  /* branding */
+  brandSection: {
+    alignItems: "center",
+    marginBottom: 26,
+  },
+  brandGlowRing: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 18,
+  },
+  brandIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  brandTitle: {
+    fontWeight: "800" as const,
+    letterSpacing: -0.5,
+    textAlign: "center",
+  },
+  brandTagline: {
+    fontSize: 15,
+    fontWeight: "400" as const,
+    textAlign: "center",
+    marginTop: 8,
+    letterSpacing: 0.2,
+  },
+
+  /* card */
   card: {
     width: "100%",
-    maxWidth: 420,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 24,
-    gap: 12,
+    maxWidth: 440,
+    borderRadius: 28,
+    alignSelf: "center",
   },
-  title: {
-    fontSize: 28,
+
+  cardTitle: {
+    fontSize: 22,
     fontWeight: "700" as const,
     textAlign: "center",
   },
-  subtitle: {
-    fontSize: 16,
+  cardSubtitle: {
+    fontSize: 14,
     textAlign: "center",
-    marginBottom: 14,
+    marginTop: 4,
   },
+
+  /* form */
   formGroup: {
+    marginBottom: 14,
     gap: 6,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "500" as const,
+    fontSize: 13,
+    fontWeight: "600" as const,
+    marginLeft: 4,
+    letterSpacing: 0.2,
   },
-  input: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  inputIconWrap: {
+    width: 46,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  inputField: {
+    flex: 1,
+    fontSize: 15,
+    paddingRight: 16,
+  },
+
+  /* error */
+  errorBanner: {
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 4,
   },
   errorText: {
     fontSize: 13,
-    marginTop: 4,
+    fontWeight: "500" as const,
+    lineHeight: 18,
   },
-  button: {
-    marginTop: 8,
-    borderRadius: 12,
-    paddingVertical: 14,
+
+  /* signup button */
+  signupButton: {
+    borderRadius: 16,
+    paddingVertical: 18,
     alignItems: "center",
+    justifyContent: "center",
   },
-  buttonText: {
+  signupButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "600" as const,
+    fontWeight: "700" as const,
+    letterSpacing: 0.5,
   },
-  linkButton: {
-    marginTop: 6,
-    alignItems: "center",
-  },
-  linkText: {
-    fontSize: 14,
-    fontWeight: "600" as const,
-  },
+
+  /* divider */
   dividerRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    marginVertical: 2,
+    marginVertical: 8,
   },
   dividerLine: {
     flex: 1,
     height: 1,
   },
   dividerText: {
+    marginHorizontal: 14,
     fontSize: 13,
     fontWeight: "500" as const,
   },
+
+  /* google */
   googleButton: {
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: "center" as const,
-    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 16,
+    paddingVertical: 15,
+    borderWidth: 1.5,
+    gap: 10,
+  },
+  googleGlyphWrap: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "#F1F3F4",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  googleGlyph: {
+    fontSize: 15,
+    fontWeight: "700" as const,
+    color: "#4285F4",
   },
   googleButtonText: {
     fontSize: 15,
     fontWeight: "600" as const,
+  },
+
+  /* login link */
+  loginRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
+  },
+  loginText: {
+    fontSize: 14,
+  },
+  loginLink: {
+    fontSize: 14,
+    fontWeight: "700" as const,
   },
 });

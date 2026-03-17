@@ -4,20 +4,21 @@ import { useMood } from "@/contexts/MoodContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import type { MoodEntry } from "@/types/mood";
 import { MOOD_CONFIG } from "@/types/mood";
-import { useRouter } from "expo-router";
-import { Calendar as CalendarIcon, History, List, LayoutGrid } from "lucide-react-native";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { Calendar as CalendarIcon, History, LayoutGrid, List } from "lucide-react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Animated,
-  Modal,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Animated,
+    Modal,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 export type MoodHistoryFilter = "all" | "7" | "30";
@@ -63,7 +64,7 @@ function formatCalendarDateLabel(dateStr: string): string {
 function notePreview(note: string | undefined, maxLen: number): string {
   if (!note?.trim()) return "";
   const t = note.trim();
-  return t.length <= maxLen ? t : t.slice(0, maxLen) + "…";
+  return t.length <= maxLen ? t : t.slice(0, maxLen) + "\u2026";
 }
 
 function filterEntriesByRange(
@@ -119,9 +120,9 @@ function CalendarModal({
     input.value = value.toISOString().split("T")[0];
     input.style.cssText = `
       width: 100%;
-      padding: 12px;
+      padding: 14px;
       font-size: 16px;
-      border-radius: 8px;
+      border-radius: 14px;
       border: 1px solid ${colors.border};
       background-color: ${colors.background};
       color: ${colors.text};
@@ -187,6 +188,13 @@ function CalendarModal({
           style={[
             styles.calendarModalContent,
             { backgroundColor: colors.card },
+            Platform.OS !== "web" && {
+              shadowColor: colors.primary,
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.15,
+              shadowRadius: 24,
+              elevation: 12,
+            },
           ]}
           onStartShouldSetResponder={() => true}
         >
@@ -194,7 +202,11 @@ function CalendarModal({
             <Text style={[styles.calendarModalTitle, { color: colors.text }]}>
               Select date
             </Text>
-            <TouchableOpacity onPress={onClose} hitSlop={12}>
+            <TouchableOpacity
+              onPress={onClose}
+              hitSlop={12}
+              style={[styles.calendarDoneBtn, { backgroundColor: colors.primaryLight }]}
+            >
               <Text
                 style={[styles.calendarModalClose, { color: colors.primary }]}
               >
@@ -224,11 +236,13 @@ function MoodCard({
   entry,
   onPress,
   colors,
+  isDarkMode,
   index,
 }: {
   entry: MoodEntry;
   onPress: () => void;
   colors: Record<string, string>;
+  isDarkMode: boolean;
   index: number;
 }) {
   const config = MOOD_CONFIG[entry.mood];
@@ -271,35 +285,50 @@ function MoodCard({
           styles.entryCard,
           {
             backgroundColor: colors.card,
-            borderColor: colors.border,
-            borderWidth: 1,
           },
+          isDarkMode
+            ? { borderColor: colors.border, borderWidth: 1 }
+            : {
+                shadowColor: '#6C63FF',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.08,
+                shadowRadius: 12,
+                elevation: 3,
+              },
         ]}
       >
         <View style={styles.entryRow}>
-          <Text style={styles.entryEmoji}>{config?.emoji ?? "😐"}</Text>
+          <View style={[styles.emojiContainer, { backgroundColor: colors.primaryLight }]}>
+            <Text style={styles.entryEmoji}>{config?.emoji ?? "\uD83D\uDE10"}</Text>
+          </View>
           <View style={styles.entryMain}>
             <Text style={[styles.entryMood, { color: colors.text }]}>
-              {config?.label ?? entry.mood} — {timeStr || "—"}
+              {config?.label ?? entry.mood}
             </Text>
-            <Text
-              style={[styles.entryStress, { color: colors.textSecondary }]}
-            >
-              Stress: {entry.stressLevel}/10
+            <Text style={[styles.entryTime, { color: colors.textMuted }]}>
+              {timeStr || "\u2014"}
             </Text>
-            {entry.activities && entry.activities.length > 0 ? (
-              <Text
-                style={[styles.entryActivities, { color: colors.textSecondary }]}
-              >
-                Activities: {entry.activities.join(", ")}
-              </Text>
-            ) : null}
+            <View style={styles.entryDetails}>
+              <View style={[styles.stressPill, { backgroundColor: colors.primaryLight }]}>
+                <Text style={[styles.stressPillText, { color: colors.primary }]}>
+                  Stress {entry.stressLevel}/10
+                </Text>
+              </View>
+              {entry.activities && entry.activities.length > 0 ? (
+                <Text
+                  style={[styles.entryActivities, { color: colors.textSecondary }]}
+                  numberOfLines={1}
+                >
+                  {entry.activities.join(", ")}
+                </Text>
+              ) : null}
+            </View>
             {preview ? (
               <Text
                 style={[styles.entryNote, { color: colors.textSecondary }]}
                 numberOfLines={2}
               >
-                Note: {preview}
+                {preview}
               </Text>
             ) : null}
           </View>
@@ -311,7 +340,7 @@ function MoodCard({
 
 export default function MoodHistoryScreen() {
   const { moodEntries, refetchMoods, isLoading } = useMood();
-  const { colors } = useTheme();
+  const { colors, isDarkMode } = useTheme();
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<MoodHistoryFilter>("all");
@@ -380,95 +409,180 @@ export default function MoodHistoryScreen() {
     setViewMode("timeline");
   }, []);
 
+  const renderHeader = () => (
+    <View
+      style={[
+        styles.header,
+        {
+          backgroundColor: colors.surface,
+        },
+        !isDarkMode && {
+          shadowColor: '#6C63FF',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 12,
+          elevation: 3,
+        },
+        isDarkMode && {
+          borderBottomColor: colors.border,
+          borderBottomWidth: 1,
+        },
+      ]}
+    >
+      <View style={styles.headerRow}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          Mood History
+        </Text>
+        <TouchableOpacity
+          onPress={openCalendar}
+          style={[
+            styles.calendarIconBtn,
+            { backgroundColor: colors.primaryLight },
+          ]}
+          accessibilityLabel="Open calendar to search by date"
+        >
+          <CalendarIcon color={colors.primary} size={22} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Segmented View Mode Toggle */}
+      <View style={[styles.viewModeRow, { backgroundColor: colors.background, borderRadius: 16 }]}>
+        <TouchableOpacity
+          onPress={() => setViewMode("timeline")}
+          style={styles.viewModeBtnWrap}
+          activeOpacity={0.8}
+        >
+          {viewMode === "timeline" ? (
+            <LinearGradient
+              colors={colors.gradient?.primary ?? ['#6C63FF', '#8B5CF6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.viewModeBtn}
+            >
+              <List color="#FFFFFF" size={16} />
+              <Text style={[styles.viewModeBtnText, { color: '#FFFFFF' }]}>
+                Timeline
+              </Text>
+            </LinearGradient>
+          ) : (
+            <View style={styles.viewModeBtn}>
+              <List color={colors.textMuted} size={16} />
+              <Text style={[styles.viewModeBtnText, { color: colors.textMuted }]}>
+                Timeline
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setViewMode("calendar")}
+          style={styles.viewModeBtnWrap}
+          activeOpacity={0.8}
+        >
+          {viewMode === "calendar" ? (
+            <LinearGradient
+              colors={colors.gradient?.primary ?? ['#6C63FF', '#8B5CF6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.viewModeBtn}
+            >
+              <LayoutGrid color="#FFFFFF" size={16} />
+              <Text style={[styles.viewModeBtnText, { color: '#FFFFFF' }]}>
+                Calendar
+              </Text>
+            </LinearGradient>
+          ) : (
+            <View style={styles.viewModeBtn}>
+              <LayoutGrid color={colors.textMuted} size={16} />
+              <Text style={[styles.viewModeBtnText, { color: colors.textMuted }]}>
+                Calendar
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {viewMode === "timeline" && (
+        <>
+          <View style={styles.filterRow}>
+            {FILTER_BTNS.map(({ key, label }) => (
+              <TouchableOpacity
+                key={key}
+                onPress={() => setFilter(key)}
+                activeOpacity={0.8}
+              >
+                {filter === key ? (
+                  <LinearGradient
+                    colors={colors.gradient?.primary ?? ['#6C63FF', '#8B5CF6']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.filterBtnActive}
+                  >
+                    <Text style={[styles.filterBtnText, { color: '#FFFFFF' }]}>
+                      {label}
+                    </Text>
+                  </LinearGradient>
+                ) : (
+                  <View
+                    style={[
+                      styles.filterBtn,
+                      { backgroundColor: colors.background, borderColor: colors.borderLight },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.filterBtnText, { color: colors.textSecondary }]}
+                    >
+                      {label}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text
+            style={[styles.headerSubtitle, { color: colors.textMuted }]}
+          >
+            {filteredEntries.length}{" "}
+            {filteredEntries.length === 1 ? "entry" : "entries"}
+          </Text>
+
+          {selectedCalendarDate ? (
+            <View style={styles.dateFilterRow}>
+              <View style={[styles.dateFilterPill, { backgroundColor: colors.primaryLight }]}>
+                <Text
+                  style={[styles.dateFilterLabel, { color: colors.primary }]}
+                  numberOfLines={1}
+                >
+                  {formatCalendarDateLabel(selectedCalendarDate)}
+                </Text>
+                <TouchableOpacity
+                  onPress={clearCalendarFilter}
+                  hitSlop={8}
+                  style={styles.clearFilterBtn}
+                >
+                  <Text style={[styles.clearFilterText, { color: colors.primary }]}>
+                    {"\u00D7"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
+        </>
+      )}
+    </View>
+  );
+
   if (moodEntries.length === 0 && !isLoading) {
     return (
       <ScreenLayout gradientKey="insights">
-        <View
-          style={[
-            styles.header,
-            {
-              backgroundColor: colors.card,
-              borderBottomColor: colors.border,
-              borderBottomWidth: 1,
-            },
-          ]}
-        >
-          <View style={styles.headerRow}>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>
-              Mood History
-            </Text>
-            <TouchableOpacity
-              onPress={openCalendar}
-              style={[styles.calendarIconBtn, { backgroundColor: colors.background }]}
-              accessibilityLabel="Open calendar to search by date"
-            >
-              <CalendarIcon color={colors.primary} size={24} />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.viewModeRow}>
-            <TouchableOpacity
-              onPress={() => setViewMode("timeline")}
-              style={[
-                styles.viewModeBtn,
-                {
-                  backgroundColor:
-                    viewMode === "timeline" ? colors.primary : colors.background,
-                  borderColor:
-                    viewMode === "timeline" ? colors.primary : colors.border,
-                },
-              ]}
-            >
-              <List
-                color={viewMode === "timeline" ? "#FFFFFF" : colors.textSecondary}
-                size={18}
-              />
-              <Text
-                style={[
-                  styles.viewModeBtnText,
-                  {
-                    color:
-                      viewMode === "timeline" ? "#FFFFFF" : colors.textSecondary,
-                  },
-                ]}
-              >
-                Timeline
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setViewMode("calendar")}
-              style={[
-                styles.viewModeBtn,
-                {
-                  backgroundColor:
-                    viewMode === "calendar" ? colors.primary : colors.background,
-                  borderColor:
-                    viewMode === "calendar" ? colors.primary : colors.border,
-                },
-              ]}
-            >
-              <LayoutGrid
-                color={viewMode === "calendar" ? "#FFFFFF" : colors.textSecondary}
-                size={18}
-              />
-              <Text
-                style={[
-                  styles.viewModeBtnText,
-                  {
-                    color:
-                      viewMode === "calendar" ? "#FFFFFF" : colors.textSecondary,
-                  },
-                ]}
-              >
-                Calendar
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        {renderHeader()}
         {viewMode === "calendar" ? (
           <MoodCalendarView onSelectDateForTimeline={handleSelectDateForTimeline} />
         ) : (
           <View style={styles.emptyState}>
-            <History color={colors.primary} size={64} style={styles.emptyIcon} />
+            <View style={[styles.emptyIconWrap, { backgroundColor: colors.primaryLight }]}>
+              <History color={colors.primary} size={40} />
+            </View>
             <Text style={[styles.emptyTitle, { color: colors.text }]}>
               No mood entries yet
             </Text>
@@ -497,138 +611,7 @@ export default function MoodHistoryScreen() {
 
   return (
     <ScreenLayout gradientKey="insights">
-      <View
-        style={[
-          styles.header,
-          {
-            backgroundColor: colors.card,
-            borderBottomColor: colors.border,
-            borderBottomWidth: 1,
-          },
-        ]}
-      >
-        <View style={styles.headerRow}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Mood History
-          </Text>
-          <TouchableOpacity
-            onPress={openCalendar}
-            style={[styles.calendarIconBtn, { backgroundColor: colors.background }]}
-            accessibilityLabel="Open calendar to search by date"
-          >
-            <CalendarIcon color={colors.primary} size={24} />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.viewModeRow}>
-          <TouchableOpacity
-            onPress={() => setViewMode("timeline")}
-            style={[
-              styles.viewModeBtn,
-              {
-                backgroundColor:
-                  viewMode === "timeline" ? colors.primary : colors.background,
-                borderColor: viewMode === "timeline" ? colors.primary : colors.border,
-              },
-            ]}
-          >
-            <List
-              color={viewMode === "timeline" ? "#FFFFFF" : colors.textSecondary}
-              size={18}
-            />
-            <Text
-              style={[
-                styles.viewModeBtnText,
-                {
-                  color: viewMode === "timeline" ? "#FFFFFF" : colors.textSecondary,
-                },
-              ]}
-            >
-              Timeline
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setViewMode("calendar")}
-            style={[
-              styles.viewModeBtn,
-              {
-                backgroundColor:
-                  viewMode === "calendar" ? colors.primary : colors.background,
-                borderColor: viewMode === "calendar" ? colors.primary : colors.border,
-              },
-            ]}
-          >
-            <LayoutGrid
-              color={viewMode === "calendar" ? "#FFFFFF" : colors.textSecondary}
-              size={18}
-            />
-            <Text
-              style={[
-                styles.viewModeBtnText,
-                {
-                  color: viewMode === "calendar" ? "#FFFFFF" : colors.textSecondary,
-                },
-              ]}
-            >
-              Calendar
-            </Text>
-          </TouchableOpacity>
-        </View>
-        {viewMode === "timeline" && (
-          <>
-            <Text
-              style={[styles.headerSubtitle, { color: colors.textSecondary }]}
-            >
-              {filteredEntries.length}{" "}
-              {filteredEntries.length === 1 ? "entry" : "entries"}
-            </Text>
-            {selectedCalendarDate ? (
-              <View style={styles.dateFilterRow}>
-                <Text
-                  style={[styles.dateFilterLabel, { color: colors.textSecondary }]}
-                  numberOfLines={1}
-                >
-                  Showing moods for {formatCalendarDateLabel(selectedCalendarDate)}
-                </Text>
-                <TouchableOpacity
-                  onPress={clearCalendarFilter}
-                  style={[styles.clearFilterBtn, { borderColor: colors.primary }]}
-                >
-                  <Text style={[styles.clearFilterText, { color: colors.primary }]}>
-                    Clear filter
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            ) : null}
-            <View style={styles.filterRow}>
-              {FILTER_BTNS.map(({ key, label }) => (
-                <TouchableOpacity
-                  key={key}
-                  onPress={() => setFilter(key)}
-                  style={[
-                    styles.filterBtn,
-                    {
-                      backgroundColor:
-                        filter === key ? colors.primary : colors.background,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.filterBtnText,
-                      {
-                        color: filter === key ? "#FFFFFF" : colors.textSecondary,
-                      },
-                    ]}
-                  >
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </>
-        )}
-      </View>
+      {renderHeader()}
 
       {viewMode === "calendar" ? (
         <MoodCalendarView onSelectDateForTimeline={handleSelectDateForTimeline} />
@@ -653,7 +636,7 @@ export default function MoodHistoryScreen() {
               <Text
                 style={[
                   styles.sectionTitle,
-                  { color: colors.textSecondary },
+                  { color: colors.textMuted },
                 ]}
               >
                 {dateLabel}
@@ -664,6 +647,7 @@ export default function MoodHistoryScreen() {
                   entry={entry}
                   index={idx}
                   colors={colors}
+                  isDarkMode={isDarkMode}
                   onPress={() => handleEntryPress(entry.id)}
                 />
               ))}
@@ -693,181 +677,229 @@ export default function MoodHistoryScreen() {
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
+    paddingTop: 16,
+    paddingBottom: 20,
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 4,
+    marginBottom: 16,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "700",
+    fontSize: 28,
+    fontWeight: "800",
+    letterSpacing: -0.5,
     flex: 1,
   },
   calendarIconBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   viewModeRow: {
     flexDirection: "row",
-    gap: 10,
-    marginTop: 12,
+    padding: 4,
+    marginBottom: 16,
+  },
+  viewModeBtnWrap: {
+    flex: 1,
   },
   viewModeBtn: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    borderRadius: 10,
-    borderWidth: 1,
+    borderRadius: 12,
   },
   viewModeBtnText: {
     fontSize: 14,
     fontWeight: "600",
   },
-  dateFilterRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 10,
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  dateFilterLabel: {
-    fontSize: 14,
-    flex: 1,
-    minWidth: 0,
-  },
-  clearFilterBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  clearFilterText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    marginTop: 0,
-  },
   filterRow: {
     flexDirection: "row",
-    gap: 10,
-    marginTop: 12,
+    gap: 8,
+    marginBottom: 12,
   },
   filterBtn: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 18,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 50,
     borderWidth: 1,
+  },
+  filterBtnActive: {
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 50,
   },
   filterBtnText: {
     fontSize: 13,
     fontWeight: "600",
   },
+  headerSubtitle: {
+    fontSize: 13,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  dateFilterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  dateFilterPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 6,
+    paddingLeft: 14,
+    paddingRight: 8,
+    borderRadius: 50,
+    gap: 6,
+  },
+  dateFilterLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  clearFilterBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  clearFilterText: {
+    fontSize: 18,
+    fontWeight: "600",
+    lineHeight: 20,
+  },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
+    padding: 20,
+    paddingBottom: 40,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 28,
   },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    marginBottom: 10,
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 12,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 1.2,
   },
   entryCard: {
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 8,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 10,
   },
   entryRow: {
     flexDirection: "row",
     alignItems: "flex-start",
   },
+  emojiContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
   entryEmoji: {
-    fontSize: 28,
-    marginRight: 12,
+    fontSize: 24,
   },
   entryMain: {
     flex: 1,
   },
   entryMood: {
     fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  entryStress: {
-    fontSize: 14,
+    fontWeight: "700",
     marginBottom: 2,
+  },
+  entryTime: {
+    fontSize: 13,
+    fontWeight: "500",
+    marginBottom: 8,
+  },
+  entryDetails: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  stressPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 50,
+  },
+  stressPillText: {
+    fontSize: 12,
+    fontWeight: "600",
   },
   entryActivities: {
     fontSize: 13,
-    marginTop: 2,
-    marginBottom: 2,
+    flex: 1,
   },
   entryNote: {
     fontSize: 14,
     fontStyle: "italic",
-    marginTop: 6,
+    marginTop: 8,
+    lineHeight: 20,
   },
   emptyState: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 32,
+    paddingHorizontal: 40,
   },
-  emptyIcon: {
-    marginBottom: 16,
+  emptyIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: "600",
+    fontSize: 22,
+    fontWeight: "700",
     marginBottom: 8,
     textAlign: "center",
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 15,
     textAlign: "center",
     lineHeight: 22,
   },
   calendarOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(26, 29, 46, 0.5)",
     justifyContent: "center",
-    padding: 20,
+    padding: 24,
   },
   calendarModalContent: {
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 24,
+    padding: 20,
     overflow: "hidden",
   },
   calendarModalHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: 16,
   },
   calendarModalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700",
   },
+  calendarDoneBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 50,
+  },
   calendarModalClose: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
   },
   webDatePickerWrap: {

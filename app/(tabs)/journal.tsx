@@ -8,12 +8,9 @@ import {
     Calendar,
     Clock,
     Feather,
-    Heart,
     MoreVertical,
     Plus,
-    Smile,
     Sparkles,
-    ThumbsUp,
     X,
 } from "lucide-react-native";
 import React, { useCallback, useState } from "react";
@@ -150,170 +147,203 @@ export default function JournalScreen() {
 
   return (
     <ScreenLayout gradientKey="journal">
+      {/* Header */}
       <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <Sparkles color={colors.primary} size={28} />
-            <Text style={[styles.headerTitle, { color: colors.text }]}>
-              Journal
-            </Text>
-          </View>
+        <View style={styles.headerContent}>
+          <Sparkles color={colors.primary} size={26} />
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            Journal
+          </Text>
+        </View>
+        <Pressable
+          style={({ pressed }) => [
+            styles.addButtonWrapper,
+            { transform: [{ scale: pressed ? 0.92 : 1 }] },
+          ]}
+          onPress={() => setModalVisible(true)}
+          android_ripple={{ color: "rgba(255,255,255,0.2)" }}
+        >
+          <LinearGradient
+            colors={colors.gradient.primary as [string, string]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.addButtonGradient}
+          >
+            <Plus color="#FFFFFF" size={24} />
+          </LinearGradient>
+        </Pressable>
+      </View>
+
+      {journalEntries.length === 0 ? (
+        /* Empty State */
+        <View style={styles.emptyState}>
+          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <View
+              style={[
+                styles.emptyIconContainer,
+                { backgroundColor: colors.primaryLight },
+              ]}
+            >
+              <Feather color={colors.primary} size={56} />
+            </View>
+          </Animated.View>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>
+            Start Your Journey
+          </Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+            Write down your thoughts, feelings, and experiences. Your journal
+            is a safe space for reflection and growth.
+          </Text>
           <Pressable
             style={({ pressed }) => [
-              styles.addButton,
-              { backgroundColor: colors.secondary },
-              { transform: [{ scale: pressed ? 0.95 : 1 }] },
+              styles.emptyActionWrapper,
+              { transform: [{ scale: pressed ? 0.96 : 1 }] },
             ]}
             onPress={() => setModalVisible(true)}
-            android_ripple={{ color: "rgba(255,255,255,0.2)" }}
           >
-            <Plus color="#FFFFFF" size={26} />
+            <LinearGradient
+              colors={colors.gradient.primary as [string, string]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.emptyActionButton}
+            >
+              <Plus color="#FFFFFF" size={20} />
+              <Text style={styles.emptyActionText}>Write your first entry</Text>
+            </LinearGradient>
           </Pressable>
         </View>
-
-        {journalEntries.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-              <Feather
-                color={colors.primary}
-                size={80}
-                style={styles.emptyEmoji}
-              />
-            </Animated.View>
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>
-              Start Your Journey
-            </Text>
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              Write down your thoughts, feelings, and experiences. Your journal
-              is a safe space for reflection.
-            </Text>
-            <View style={styles.emptyFooter}>
-              <Heart
-                color={colors.primary}
-                size={24}
-                style={styles.emptyHeart}
-              />
-              <Text
-                style={[styles.emptyCaption, { color: colors.textSecondary }]}
-              >
-                Every thought matters
-              </Text>
-            </View>
-          </View>
-        ) : (
-          <FlatList
-            data={journalEntries}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.entriesContainer}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={colors.primary}
-                title="Pull to refresh"
-                titleColor={colors.text}
-              />
-            }
-            renderItem={({ item, index }) => (
-              <Animated.View
-                style={[
-                  styles.entryCard,
-                  { backgroundColor: colors.card },
-                  {
-                    opacity: fadeAnim,
-                    transform: [{ translateY: slideAnim }],
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <View style={styles.entryHeader}>
-                  <View style={styles.entryTitleContainer}>
-                    <Text
-                      style={[styles.entryTitle, { color: colors.text }]}
-                      numberOfLines={1}
-                    >
-                      {item.title}
-                    </Text>
-                    <TouchableOpacity>
-                      <MoreVertical color={colors.textSecondary} size={20} />
-                    </TouchableOpacity>
-                  </View>
-                  <View style={styles.entryMeta}>
-                    <View style={styles.metaItem}>
-                      <Calendar color={colors.textSecondary} size={16} />
-                      <Text
-                        style={[
-                          styles.metaText,
-                          { color: colors.textSecondary },
-                        ]}
-                      >
-                        {formatDate(item.date)}
-                      </Text>
-                    </View>
-                    <View style={styles.metaItem}>
-                      <Clock color={colors.textSecondary} size={16} />
-                      <Text
-                        style={[
-                          styles.metaText,
-                          { color: colors.textSecondary },
-                        ]}
-                      >
-                        {formatTime(item.date)}
-                      </Text>
-                    </View>
-                  </View>
+      ) : (
+        /* Entry List */
+        <FlatList
+          data={journalEntries}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.entriesContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+              title="Pull to refresh"
+              titleColor={colors.text}
+            />
+          }
+          renderItem={({ item, index }) => (
+            <Animated.View
+              style={[
+                styles.entryCard,
+                {
+                  backgroundColor: colors.card,
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                },
+                isDarkMode
+                  ? { borderWidth: 1, borderColor: colors.border }
+                  : {
+                      boxShadow:
+                        "0px 2px 16px rgba(108, 99, 255, 0.08)",
+                      elevation: 3,
+                    },
+              ]}
+            >
+              {/* Title Row */}
+              <View style={styles.entryHeader}>
+                <View style={styles.entryTitleRow}>
+                  <Text
+                    style={[styles.entryTitle, { color: colors.text }]}
+                    numberOfLines={1}
+                  >
+                    {item.title}
+                  </Text>
+                  <TouchableOpacity style={styles.menuButton}>
+                    <MoreVertical color={colors.textMuted} size={20} />
+                  </TouchableOpacity>
                 </View>
 
-                {item.emotions.length > 0 && (
-                  <View style={styles.emotionTags}>
-                    {item.emotions.map((emotion, index) => (
-                      <View
-                        key={`${item.id}-${index}-${emotion}`}
-                        style={[
-                          styles.emotionTag,
-                          {
-                            backgroundColor: isDarkMode
-                              ? "rgba(124, 58, 237, 0.15)"
-                              : "rgba(255, 247, 237, 0.8)",
-                            borderColor: colors.secondary,
-                            borderWidth: 1,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.emotionText,
-                            { color: colors.secondary },
-                          ]}
-                        >
-                          {emotion}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                <Text
-                  style={[styles.entryContent, { color: colors.textSecondary }]}
-                  numberOfLines={4}
-                >
-                  {item.content}
-                </Text>
-
-                {item.aiInsights && (
+                {/* Date/Time Pill */}
+                <View style={styles.metaRow}>
                   <View
                     style={[
-                      styles.aiInsight,
+                      styles.metaPill,
                       {
                         backgroundColor: isDarkMode
-                          ? "rgba(124, 58, 237, 0.1)"
-                          : "rgba(240, 244, 255, 0.7)",
-                        borderLeftColor: colors.primary,
+                          ? colors.primaryLight
+                          : colors.borderLight,
+                      },
+                    ]}
+                  >
+                    <Calendar color={colors.textMuted} size={13} />
+                    <Text
+                      style={[styles.metaPillText, { color: colors.textSecondary }]}
+                    >
+                      {formatDate(item.date)}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.metaPill,
+                      {
+                        backgroundColor: isDarkMode
+                          ? colors.primaryLight
+                          : colors.borderLight,
+                      },
+                    ]}
+                  >
+                    <Clock color={colors.textMuted} size={13} />
+                    <Text
+                      style={[styles.metaPillText, { color: colors.textSecondary }]}
+                    >
+                      {formatTime(item.date)}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Emotion Tags */}
+              {item.emotions.length > 0 && (
+                <View style={styles.emotionTags}>
+                  {item.emotions.map((emotion, idx) => (
+                    <LinearGradient
+                      key={`${item.id}-${idx}-${emotion}`}
+                      colors={colors.gradient.accent as [string, string]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.emotionTagGradient}
+                    >
+                      <Text style={styles.emotionTagText}>{emotion}</Text>
+                    </LinearGradient>
+                  ))}
+                </View>
+              )}
+
+              {/* Content Preview */}
+              <Text
+                style={[styles.entryContent, { color: colors.textSecondary }]}
+                numberOfLines={4}
+              >
+                {item.content}
+              </Text>
+
+              {/* AI Insight */}
+              {item.aiInsights && (
+                <View style={styles.aiInsightContainer}>
+                  <LinearGradient
+                    colors={colors.gradient.primary as [string, string]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={styles.aiInsightBorder}
+                  />
+                  <View
+                    style={[
+                      styles.aiInsightContent,
+                      {
+                        backgroundColor: isDarkMode
+                          ? colors.primaryLight
+                          : colors.shimmer,
                       },
                     ]}
                   >
                     <View style={styles.aiInsightHeader}>
-                      <Sparkles color={colors.primary} size={16} />
+                      <Sparkles color={colors.primary} size={15} />
                       <Text
                         style={[
                           styles.aiInsightTitle,
@@ -332,12 +362,14 @@ export default function JournalScreen() {
                       {item.aiInsights}
                     </Text>
                   </View>
-                )}
-              </Animated.View>
-            )}
-          />
-        )}
+                </View>
+              )}
+            </Animated.View>
+          )}
+        />
+      )}
 
+      {/* New Entry Modal */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -350,12 +382,8 @@ export default function JournalScreen() {
           style={styles.modalContainer}
         >
           <SafeAreaView style={styles.modalSafeArea} edges={["top", "bottom"]}>
-            <View
-              style={[
-                styles.modalHeader,
-                { borderBottomWidth: 1, borderColor: colors.border },
-              ]}
-            >
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>
                 New Entry
               </Text>
@@ -365,17 +393,28 @@ export default function JournalScreen() {
                   styles.closeButton,
                   {
                     backgroundColor: isDarkMode
-                      ? "rgba(255,255,255,0.1)"
-                      : "rgba(0,0,0,0.1)",
+                      ? "rgba(255,255,255,0.08)"
+                      : "rgba(108, 99, 255, 0.08)",
                   },
-                  { transform: [{ scale: pressed ? 0.95 : 1 }] },
+                  { transform: [{ scale: pressed ? 0.92 : 1 }] },
                 ]}
               >
-                <X color={colors.textSecondary} size={26} />
+                <X color={colors.textSecondary} size={22} />
               </Pressable>
             </View>
+            {/* Gradient Divider */}
+            <LinearGradient
+              colors={colors.gradient.primary as [string, string]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.modalDivider}
+            />
 
-            <ScrollView style={styles.modalContent}>
+            <ScrollView
+              style={styles.modalContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Title Input */}
               <View style={styles.formSection}>
                 <Text style={[styles.formLabel, { color: colors.text }]}>
                   Title
@@ -385,15 +424,17 @@ export default function JournalScreen() {
                     styles.titleInput,
                     {
                       backgroundColor: isDarkMode
-                        ? colors.background
-                        : "rgba(255, 255, 255, 0.7)",
+                        ? colors.surface
+                        : colors.borderLight,
                       color: colors.text,
+                    },
+                    isDarkMode && {
                       borderWidth: 1,
                       borderColor: colors.border,
                     },
                   ]}
                   placeholder="Give your entry a meaningful title..."
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor={colors.textMuted}
                   value={title}
                   onChangeText={setTitle}
                   autoFocus
@@ -402,6 +443,7 @@ export default function JournalScreen() {
                 />
               </View>
 
+              {/* Emotion Selector */}
               <View style={styles.formSection}>
                 <Text style={[styles.formLabel, { color: colors.text }]}>
                   How are you feeling?
@@ -409,42 +451,54 @@ export default function JournalScreen() {
                 <View style={styles.emotionGrid}>
                   {EMOTION_TAGS.map((emotion) => {
                     const isSelected = selectedEmotions.includes(emotion);
-                    return (
+                    return isSelected ? (
                       <Pressable
                         key={emotion}
                         style={({ pressed }) => [
-                          styles.emotionButton,
-                          {
-                            backgroundColor: isDarkMode
-                              ? isSelected
-                                ? colors.secondary
-                                : colors.background
-                              : isSelected
-                                ? colors.secondary
-                                : "rgba(255, 255, 255, 0.7)",
-                            borderColor: isSelected
-                              ? colors.secondary
-                              : colors.border,
-                          },
-                          { transform: [{ scale: pressed ? 0.95 : 1 }] },
-                          {
-                            boxShadow: isSelected
-                              ? "0px 2px 4px rgba(249, 115, 22, 0.2)"
-                              : "0px 2px 4px rgba(0, 0, 0, 0.2)",
-                            elevation: 2,
-                          },
+                          styles.emotionButtonOuter,
+                          { transform: [{ scale: pressed ? 0.93 : 1 }] },
                         ]}
                         onPress={() => toggleEmotion(emotion)}
                         android_ripple={{
-                          color: isSelected
-                            ? "rgba(249, 115, 22, 0.3)"
-                            : "rgba(0,0,0,0.1)",
+                          color: "rgba(255,255,255,0.3)",
+                        }}
+                      >
+                        <LinearGradient
+                          colors={colors.gradient.primary as [string, string]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.emotionButtonGradient}
+                        >
+                          <Text style={styles.emotionButtonTextSelected}>
+                            {emotion}
+                          </Text>
+                        </LinearGradient>
+                      </Pressable>
+                    ) : (
+                      <Pressable
+                        key={emotion}
+                        style={({ pressed }) => [
+                          styles.emotionButtonUnselected,
+                          {
+                            backgroundColor: isDarkMode
+                              ? colors.surface
+                              : colors.borderLight,
+                          },
+                          isDarkMode && {
+                            borderWidth: 1,
+                            borderColor: colors.border,
+                          },
+                          { transform: [{ scale: pressed ? 0.93 : 1 }] },
+                        ]}
+                        onPress={() => toggleEmotion(emotion)}
+                        android_ripple={{
+                          color: "rgba(0,0,0,0.1)",
                         }}
                       >
                         <Text
                           style={[
                             styles.emotionButtonText,
-                            { color: isSelected ? "#FFFFFF" : colors.text },
+                            { color: colors.text },
                           ]}
                         >
                           {emotion}
@@ -455,6 +509,7 @@ export default function JournalScreen() {
                 </View>
               </View>
 
+              {/* Thoughts Textarea */}
               <View style={styles.formSection}>
                 <Text style={[styles.formLabel, { color: colors.text }]}>
                   Your Thoughts
@@ -464,15 +519,17 @@ export default function JournalScreen() {
                     styles.thoughtsInput,
                     {
                       backgroundColor: isDarkMode
-                        ? colors.background
-                        : "rgba(255, 255, 255, 0.7)",
+                        ? colors.surface
+                        : colors.borderLight,
                       color: colors.text,
+                    },
+                    isDarkMode && {
                       borderWidth: 1,
                       borderColor: colors.border,
                     },
                   ]}
                   placeholder="Express your thoughts freely..."
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor={colors.textMuted}
                   value={content}
                   onChangeText={setContent}
                   multiline
@@ -482,10 +539,12 @@ export default function JournalScreen() {
                 />
               </View>
 
+              {/* Save Button */}
               <Pressable
                 style={({ pressed }) => [
                   styles.saveButton,
                   (!title.trim() || !content.trim()) && styles.disabledButton,
+                  { transform: [{ scale: pressed ? 0.97 : 1 }] },
                 ]}
                 onPress={handleSave}
                 disabled={
@@ -499,7 +558,9 @@ export default function JournalScreen() {
                 accessibilityHint="Save your journal entry"
               >
                 <LinearGradient
-                  colors={colors.gradient.secondary}
+                  colors={colors.gradient.button as [string, string]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
                   style={styles.saveButtonGradient}
                 >
                   <Text style={styles.saveButtonText}>
@@ -509,17 +570,6 @@ export default function JournalScreen() {
                   </Text>
                 </LinearGradient>
               </Pressable>
-
-              {/* Decorative elements */}
-              <View style={styles.decorativeElement1}>
-                <Heart color={colors.primary} size={32} />
-              </View>
-              <View style={styles.decorativeElement2}>
-                <Smile color={colors.secondary} size={28} />
-              </View>
-              <View style={styles.decorativeElement3}>
-                <ThumbsUp color={colors.primary} size={36} />
-              </View>
             </ScrollView>
           </SafeAreaView>
         </LinearGradient>
@@ -529,18 +579,13 @@ export default function JournalScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
+  /* ---- Header ---- */
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 18,
   },
   headerContent: {
     flexDirection: "row",
@@ -550,127 +595,172 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: "800" as const,
+    letterSpacing: -0.5,
   },
-  addButton: {
+  addButtonWrapper: {
+    borderRadius: 26,
+    overflow: "hidden",
+  },
+  addButtonGradient: {
     width: 52,
     height: 52,
     borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
+    boxShadow: "0px 4px 14px rgba(108, 99, 255, 0.35)",
+    elevation: 4,
   },
+
+  /* ---- Empty State ---- */
   emptyState: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 40,
+    paddingHorizontal: 44,
   },
-  emptyEmoji: {
-    marginBottom: 20,
-    opacity: 0.8,
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 32,
   },
   emptyTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "700" as const,
-    marginBottom: 10,
+    marginBottom: 12,
+    letterSpacing: -0.3,
   },
   emptyText: {
     fontSize: 16,
     textAlign: "center",
-    lineHeight: 24,
-    marginBottom: 30,
+    lineHeight: 26,
+    marginBottom: 36,
   },
-  emptyFooter: {
-    marginTop: 30,
+  emptyActionWrapper: {
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  emptyActionButton: {
+    flexDirection: "row",
     alignItems: "center",
-    opacity: 0.7,
+    gap: 8,
+    paddingHorizontal: 28,
+    paddingVertical: 16,
+    borderRadius: 16,
   },
-  emptyHeart: {
-    marginBottom: 5,
+  emptyActionText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600" as const,
   },
-  emptyCaption: {
-    fontSize: 14,
-    fontStyle: "italic",
-  },
+
+  /* ---- Entry List ---- */
   entriesContainer: {
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 20,
+    paddingTop: 8,
+    paddingBottom: 24,
   },
+
+  /* ---- Entry Card ---- */
   entryCard: {
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,
-    boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.05)",
-    elevation: 2,
   },
   entryHeader: {
     marginBottom: 14,
   },
-  entryTitleContainer: {
+  entryTitleRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   entryTitle: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: "700" as const,
+    flex: 1,
+    marginRight: 8,
+    letterSpacing: -0.2,
   },
-  entryMeta: {
+  menuButton: {
+    padding: 4,
+  },
+  metaRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 8,
+    gap: 10,
   },
-  metaItem: {
+  metaPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
   },
-  metaText: {
-    fontSize: 14,
+  metaPillText: {
+    fontSize: 12,
     fontWeight: "500" as const,
   },
+
+  /* ---- Emotion Tags (on cards) ---- */
   emotionTags: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
     marginBottom: 14,
   },
-  emotionTag: {
+  emotionTagGradient: {
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 5,
     borderRadius: 20,
-    borderWidth: 1,
   },
-  emotionText: {
-    fontSize: 13,
+  emotionTagText: {
+    color: "#FFFFFF",
+    fontSize: 12,
     fontWeight: "600" as const,
   },
+
+  /* ---- Entry Content ---- */
   entryContent: {
-    fontSize: 16,
+    fontSize: 15,
     lineHeight: 24,
   },
-  aiInsight: {
+
+  /* ---- AI Insight ---- */
+  aiInsightContainer: {
     marginTop: 16,
-    padding: 16,
-    borderRadius: 16,
-    borderLeftWidth: 4,
+    flexDirection: "row",
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  aiInsightBorder: {
+    width: 4,
+  },
+  aiInsightContent: {
+    flex: 1,
+    padding: 14,
   },
   aiInsightHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 8,
+    gap: 6,
+    marginBottom: 6,
   },
   aiInsightTitle: {
-    fontSize: 14,
-    fontWeight: "600" as const,
+    fontSize: 13,
+    fontWeight: "700" as const,
+    letterSpacing: 0.2,
   },
   aiInsightText: {
-    fontSize: 15,
+    fontSize: 14,
     lineHeight: 22,
   },
+
+  /* ---- Modal ---- */
   modalContainer: {
     flex: 1,
   },
@@ -681,92 +771,108 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingVertical: 18,
   },
   modalTitle: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "700" as const,
+    letterSpacing: -0.3,
   },
   closeButton: {
-    padding: 8,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalDivider: {
+    height: 2,
+    marginHorizontal: 24,
+    borderRadius: 1,
+    opacity: 0.5,
   },
   modalContent: {
-    padding: 20,
     flex: 1,
-    paddingTop: 20,
+    paddingHorizontal: 24,
+    paddingTop: 24,
   },
+
+  /* ---- Form ---- */
   formSection: {
     marginBottom: 28,
   },
   formLabel: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "600" as const,
-    marginBottom: 14,
+    marginBottom: 12,
   },
   titleInput: {
-    borderRadius: 16,
-    padding: 18,
-    fontSize: 17,
-    fontFamily: "System",
+    borderRadius: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    fontSize: 16,
   },
+
+  /* ---- Emotion Selector (in modal) ---- */
   emotionGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    gap: 10,
   },
-  emotionButton: {
+  emotionButtonOuter: {
+    borderRadius: 50,
+    overflow: "hidden",
+  },
+  emotionButtonGradient: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-    borderWidth: 1,
+    paddingVertical: 11,
+    borderRadius: 50,
+  },
+  emotionButtonUnselected: {
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: 50,
   },
   emotionButtonText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600" as const,
   },
-  thoughtsInput: {
-    borderRadius: 16,
-    padding: 18,
-    fontSize: 17,
-    fontFamily: "System",
-    minHeight: 220,
+  emotionButtonTextSelected: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600" as const,
   },
+
+  /* ---- Thoughts Input ---- */
+  thoughtsInput: {
+    borderRadius: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    fontSize: 16,
+    minHeight: 200,
+    lineHeight: 24,
+  },
+
+  /* ---- Save Button ---- */
   saveButton: {
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: "hidden",
-    marginTop: 10,
+    marginTop: 8,
     marginBottom: 40,
   },
   disabledButton: {
-    opacity: 0.5,
+    opacity: 0.45,
   },
   saveButtonGradient: {
-    paddingVertical: 20,
+    paddingVertical: 18,
     alignItems: "center",
+    borderRadius: 16,
   },
   saveButtonText: {
     color: "#FFFFFF",
-    fontSize: 19,
-    fontWeight: "600" as const,
-  },
-  decorativeElement1: {
-    position: "absolute",
-    top: 50,
-    left: 20,
-    opacity: 0.1,
-  },
-  decorativeElement2: {
-    position: "absolute",
-    top: 120,
-    right: 30,
-    opacity: 0.1,
-  },
-  decorativeElement3: {
-    position: "absolute",
-    bottom: 150,
-    left: 40,
-    opacity: 0.1,
+    fontSize: 17,
+    fontWeight: "700" as const,
+    letterSpacing: 0.3,
   },
 });

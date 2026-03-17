@@ -2,19 +2,20 @@ import { useMood } from "@/contexts/MoodContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import type { MoodEntry } from "@/types/mood";
 import { MOOD_CONFIG } from "@/types/mood";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { ChevronLeft, ChevronRight } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, Clock, Zap } from "lucide-react-native";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
 function formatTime(iso: string | undefined): string {
   if (!iso) return "";
@@ -66,7 +67,6 @@ function getCalendarCells(year: number, month: number): Cell[] {
 }
 
 export type MoodCalendarViewProps = {
-  /** When user taps "View in timeline" for a date, switch to timeline with this date selected */
   onSelectDateForTimeline?: (dateStr: string) => void;
 };
 
@@ -74,13 +74,14 @@ export default function MoodCalendarView({
   onSelectDateForTimeline,
 }: MoodCalendarViewProps) {
   const { moodEntries } = useMood();
-  const { colors } = useTheme();
+  const { colors, isDarkMode } = useTheme();
   const router = useRouter();
   const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
   const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
   const [modalDate, setModalDate] = useState<string | null>(null);
 
-  /** Map dateStr -> most recent mood entry (moodEntries are already ordered by created_at DESC) */
+  const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+
   const moodByDate = useMemo(() => {
     const map = new Map<string, MoodEntry>();
     for (const e of moodEntries) {
@@ -141,29 +142,59 @@ export default function MoodCalendarView({
 
   return (
     <View style={styles.container}>
-      <View style={styles.monthNav}>
-        <TouchableOpacity onPress={goPrev} style={styles.navBtn} hitSlop={12}>
-          <ChevronLeft color={colors.text} size={24} />
+      {/* Month Navigation */}
+      <View
+        style={[
+          styles.monthNav,
+          { backgroundColor: isDarkMode ? colors.card : colors.surface },
+          !isDarkMode && {
+            shadowColor: "#6C63FF",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.06,
+            shadowRadius: 12,
+            elevation: 2,
+          },
+          isDarkMode && { borderColor: colors.border, borderWidth: 1 },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={goPrev}
+          style={[styles.navBtn, { backgroundColor: colors.primaryLight }]}
+          hitSlop={12}
+          activeOpacity={0.7}
+        >
+          <ChevronLeft color={colors.primary} size={20} strokeWidth={2.5} />
         </TouchableOpacity>
         <Text style={[styles.monthLabel, { color: colors.text }]}>
           {monthLabel}
         </Text>
-        <TouchableOpacity onPress={goNext} style={styles.navBtn} hitSlop={12}>
-          <ChevronRight color={colors.text} size={24} />
+        <TouchableOpacity
+          onPress={goNext}
+          style={[styles.navBtn, { backgroundColor: colors.primaryLight }]}
+          hitSlop={12}
+          activeOpacity={0.7}
+        >
+          <ChevronRight color={colors.primary} size={20} strokeWidth={2.5} />
         </TouchableOpacity>
       </View>
 
+      {/* Weekday Headers */}
       <View style={styles.weekdayRow}>
-        {WEEKDAYS.map((d) => (
-          <Text
-            key={d}
-            style={[styles.weekdayCell, { color: colors.textSecondary }]}
-          >
-            {d}
-          </Text>
+        {WEEKDAYS.map((d, i) => (
+          <View key={`${d}-${i}`} style={styles.weekdayCell}>
+            <Text
+              style={[
+                styles.weekdayText,
+                { color: i === 0 || i === 6 ? colors.primary : colors.textMuted },
+              ]}
+            >
+              {d}
+            </Text>
+          </View>
         ))}
       </View>
 
+      {/* Calendar Grid */}
       <View style={styles.grid}>
         {cells.map((cell, index) => {
           const entry = moodByDate.get(cell.dateStr);
@@ -171,38 +202,92 @@ export default function MoodCalendarView({
             ? MOOD_CONFIG[entry.mood]?.color ?? colors.border
             : null;
           const isCurrentMonth = cell.type === "current";
+          const isToday = cell.dateStr === todayStr;
+          const hasMood = !!entry;
+
           return (
             <TouchableOpacity
               key={`${cell.dateStr}-${index}`}
               onPress={() => handleDayPress(cell.dateStr)}
-              style={[
-                styles.dayCell,
-                {
-                  backgroundColor: moodColor ?? (isCurrentMonth ? colors.background : "transparent"),
-                  borderColor: colors.border,
-                  opacity: isCurrentMonth ? 1 : 0.5,
-                },
-              ]}
+              activeOpacity={0.6}
+              style={styles.dayCellWrap}
             >
-              <Text
+              <View
                 style={[
-                  styles.dayNum,
+                  styles.dayCell,
                   {
-                    color: isCurrentMonth ? colors.text : colors.textSecondary,
+                    backgroundColor: hasMood
+                      ? moodColor + "20"
+                      : isCurrentMonth
+                        ? isDarkMode
+                          ? colors.surface
+                          : colors.surface
+                        : "transparent",
+                    borderColor: isToday
+                      ? colors.primary
+                      : hasMood
+                        ? moodColor + "40"
+                        : "transparent",
+                    borderWidth: isToday ? 2 : hasMood ? 1.5 : 0,
+                    opacity: isCurrentMonth ? 1 : 0.35,
                   },
+                  !isDarkMode &&
+                    isCurrentMonth &&
+                    !hasMood && {
+                      shadowColor: "#6C63FF",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.04,
+                      shadowRadius: 4,
+                      elevation: 1,
+                    },
                 ]}
               >
-                {cell.day}
-              </Text>
+                {hasMood && (
+                  <Text style={styles.moodEmoji}>
+                    {MOOD_CONFIG[entry.mood]?.emoji}
+                  </Text>
+                )}
+                <Text
+                  style={[
+                    styles.dayNum,
+                    {
+                      color: isToday
+                        ? colors.primary
+                        : hasMood
+                          ? moodColor
+                          : isCurrentMonth
+                            ? colors.text
+                            : colors.textMuted,
+                      fontWeight: isToday || hasMood ? "700" : "500",
+                    },
+                  ]}
+                >
+                  {cell.day}
+                </Text>
+              </View>
             </TouchableOpacity>
           );
         })}
       </View>
 
-      <View style={[styles.legend, { borderColor: colors.border }]}>
-        <Text style={[styles.legendTitle, { color: colors.textSecondary }]}>
-          Mood
-        </Text>
+      {/* Legend */}
+      <View
+        style={[
+          styles.legend,
+          {
+            backgroundColor: isDarkMode ? colors.card : colors.surface,
+            borderColor: isDarkMode ? colors.border : "transparent",
+            borderWidth: isDarkMode ? 1 : 0,
+          },
+          !isDarkMode && {
+            shadowColor: "#6C63FF",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.06,
+            shadowRadius: 12,
+            elevation: 2,
+          },
+        ]}
+      >
         <View style={styles.legendRow}>
           {(["great", "good", "okay", "bad", "terrible"] as const).map(
             (mood) => (
@@ -224,6 +309,7 @@ export default function MoodCalendarView({
         </View>
       </View>
 
+      {/* Day Detail Modal */}
       <Modal
         visible={modalDate !== null}
         transparent
@@ -231,30 +317,69 @@ export default function MoodCalendarView({
         onRequestClose={closeModal}
       >
         <TouchableOpacity
-          style={styles.modalOverlay}
+          style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}
           activeOpacity={1}
           onPress={closeModal}
         >
           <View
             style={[
               styles.modalContent,
-              { backgroundColor: colors.card, borderColor: colors.border },
+              {
+                backgroundColor: colors.card,
+              },
+              isDarkMode
+                ? { borderColor: colors.border, borderWidth: 1 }
+                : {
+                    shadowColor: "#6C63FF",
+                    shadowOffset: { width: 0, height: 12 },
+                    shadowOpacity: 0.15,
+                    shadowRadius: 32,
+                    elevation: 16,
+                  },
             ]}
             onStartShouldSetResponder={() => true}
           >
-            <Text style={[styles.modalTitle, { color: colors.text }]}>
-              {modalDate ? formatDateLabel(modalDate) : ""}
-            </Text>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                {modalDate ? formatDateLabel(modalDate) : ""}
+              </Text>
+              <View
+                style={[
+                  styles.modalEntryCount,
+                  { backgroundColor: colors.primaryLight },
+                ]}
+              >
+                <Text
+                  style={[styles.modalEntryCountText, { color: colors.primary }]}
+                >
+                  {entriesForModal.length}{" "}
+                  {entriesForModal.length === 1 ? "entry" : "entries"}
+                </Text>
+              </View>
+            </View>
+
+            {/* Gradient divider */}
+            <LinearGradient
+              colors={colors.gradient.primary as [string, string]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.modalDivider}
+            />
+
             <ScrollView
               style={styles.modalScroll}
               keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
             >
               {entriesForModal.length === 0 ? (
-                <Text
-                  style={[styles.modalEmpty, { color: colors.textSecondary }]}
-                >
-                  No mood entries this day
-                </Text>
+                <View style={styles.modalEmptyWrap}>
+                  <Text
+                    style={[styles.modalEmpty, { color: colors.textSecondary }]}
+                  >
+                    No mood entries this day
+                  </Text>
+                </View>
               ) : (
                 entriesForModal.map((entry) => {
                   const config = MOOD_CONFIG[entry.mood];
@@ -265,66 +390,115 @@ export default function MoodCalendarView({
                         closeModal();
                         router.push(`/mood-detail/${entry.id}`);
                       }}
+                      activeOpacity={0.7}
                       style={[
                         styles.modalEntry,
                         {
-                          backgroundColor: colors.background,
+                          backgroundColor: isDarkMode
+                            ? colors.surface
+                            : config.color + "08",
+                        },
+                        isDarkMode && {
                           borderColor: colors.border,
+                          borderWidth: 1,
                         },
                       ]}
                     >
-                      <Text style={styles.modalEntryEmoji}>
-                        {config?.emoji ?? "😐"}
-                      </Text>
-                      <View style={styles.modalEntryBody}>
-                        <Text
-                          style={[styles.modalEntryMood, { color: colors.text }]}
-                        >
-                          {config?.label ?? entry.mood} —{" "}
-                          {formatTime(entry.createdAt)}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.modalEntryStress,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          Stress: {entry.stressLevel}/10
+                      <View
+                        style={[
+                          styles.modalEntryEmojiWrap,
+                          { backgroundColor: config.color + "18" },
+                        ]}
+                      >
+                        <Text style={styles.modalEntryEmoji}>
+                          {config?.emoji ?? "\uD83D\uDE10"}
                         </Text>
                       </View>
+                      <View style={styles.modalEntryBody}>
+                        <Text
+                          style={[
+                            styles.modalEntryMood,
+                            { color: colors.text },
+                          ]}
+                        >
+                          {config?.label ?? entry.mood}
+                        </Text>
+                        <View style={styles.modalEntryMeta}>
+                          <View style={styles.modalMetaItem}>
+                            <Clock
+                              size={12}
+                              color={colors.textMuted}
+                              strokeWidth={2}
+                            />
+                            <Text
+                              style={[
+                                styles.modalEntryTime,
+                                { color: colors.textMuted },
+                              ]}
+                            >
+                              {formatTime(entry.createdAt) || "\u2014"}
+                            </Text>
+                          </View>
+                          <View style={styles.modalMetaItem}>
+                            <Zap
+                              size={12}
+                              color={colors.textMuted}
+                              strokeWidth={2}
+                            />
+                            <Text
+                              style={[
+                                styles.modalEntryStress,
+                                { color: colors.textMuted },
+                              ]}
+                            >
+                              Stress {entry.stressLevel}/10
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                      <ChevronRight
+                        size={16}
+                        color={colors.textMuted}
+                        strokeWidth={2}
+                      />
                     </TouchableOpacity>
                   );
                 })
               )}
             </ScrollView>
+
             <View style={styles.modalActions}>
               <TouchableOpacity
                 onPress={closeModal}
                 style={[
                   styles.modalBtn,
                   {
-                    backgroundColor: colors.background,
+                    backgroundColor: isDarkMode
+                      ? colors.surface
+                      : colors.borderLight,
+                  },
+                  isDarkMode && {
                     borderColor: colors.border,
+                    borderWidth: 1,
                   },
                 ]}
+                activeOpacity={0.7}
               >
                 <Text style={[styles.modalBtnText, { color: colors.text }]}>
                   Close
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={viewInTimeline}
-                style={[
-                  styles.modalBtn,
-                  {
-                    backgroundColor: colors.primary,
-                    borderColor: colors.primary,
-                  },
-                ]}
-              >
-                <Text style={[styles.modalBtnText, { color: "#FFFFFF" }]}>
-                  View in timeline
-                </Text>
+              <TouchableOpacity onPress={viewInTimeline} activeOpacity={0.85}>
+                <LinearGradient
+                  colors={colors.gradient.button as [string, string]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.modalBtnGradient}
+                >
+                  <Text style={styles.modalBtnTextWhite}>
+                    View in timeline
+                  </Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -337,139 +511,214 @@ export default function MoodCalendarView({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: 20,
+    paddingTop: 8,
   },
   monthNav: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    marginBottom: 20,
   },
   navBtn: {
-    padding: 8,
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
   },
   monthLabel: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 20,
+    fontWeight: "800",
+    letterSpacing: -0.3,
   },
   weekdayRow: {
     flexDirection: "row",
-    marginBottom: 8,
+    marginBottom: 10,
+    paddingHorizontal: 2,
   },
   weekdayCell: {
     flex: 1,
-    textAlign: "center",
-    fontSize: 12,
-    fontWeight: "600",
+    alignItems: "center",
+  },
+  weekdayText: {
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
+    paddingHorizontal: 2,
+  },
+  dayCellWrap: {
+    width: "14.28%",
+    paddingHorizontal: 2,
+    paddingVertical: 3,
   },
   dayCell: {
-    width: "14.28%",
     aspectRatio: 1,
-    maxWidth: 44,
-    maxHeight: 44,
-    borderRadius: 8,
-    borderWidth: 1,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: 2,
+    gap: 1,
+  },
+  moodEmoji: {
+    fontSize: 14,
+    marginBottom: -2,
   },
   dayNum: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 12,
   },
   legend: {
     marginTop: 20,
-    paddingTop: 16,
-    borderTopWidth: 1,
-  },
-  legendTitle: {
-    fontSize: 12,
-    fontWeight: "600",
-    marginBottom: 8,
+    borderRadius: 18,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   legendRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    justifyContent: "space-between",
+    gap: 10,
   },
   legendItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
   },
   legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
   legendText: {
     fontSize: 12,
+    fontWeight: "600",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
-    padding: 20,
+    justifyContent: "center",
+    paddingHorizontal: 24,
   },
   modalContent: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderWidth: 1,
-    maxHeight: "70%",
-    padding: 20,
+    borderRadius: 28,
+    maxHeight: "75%",
+    overflow: "hidden",
+  },
+  modalHeader: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
+    fontWeight: "800",
+    letterSpacing: -0.3,
+    marginBottom: 8,
+  },
+  modalEntryCount: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  modalEntryCountText: {
+    fontSize: 12,
     fontWeight: "700",
-    marginBottom: 12,
+  },
+  modalDivider: {
+    height: 2,
+    marginHorizontal: 24,
+    borderRadius: 1,
+    opacity: 0.4,
   },
   modalScroll: {
-    maxHeight: 280,
-    marginBottom: 16,
+    maxHeight: 300,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+  },
+  modalEmptyWrap: {
+    paddingVertical: 28,
+    alignItems: "center",
   },
   modalEmpty: {
     fontSize: 15,
+    fontWeight: "500",
   },
   modalEntry: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 8,
+    padding: 14,
+    borderRadius: 18,
+    marginBottom: 10,
+    gap: 14,
+  },
+  modalEntryEmojiWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalEntryEmoji: {
-    fontSize: 28,
-    marginRight: 12,
+    fontSize: 24,
   },
   modalEntryBody: {
     flex: 1,
   },
   modalEntryMood: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  modalEntryMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  modalMetaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  modalEntryTime: {
+    fontSize: 12,
+    fontWeight: "500",
   },
   modalEntryStress: {
-    fontSize: 13,
-    marginTop: 2,
+    fontSize: 12,
+    fontWeight: "500",
   },
   modalActions: {
     flexDirection: "row",
     gap: 12,
+    padding: 24,
+    paddingTop: 16,
   },
   modalBtn: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
+    paddingVertical: 15,
+    borderRadius: 16,
+    alignItems: "center",
+  },
+  modalBtnGradient: {
+    flex: 1,
+    paddingVertical: 15,
+    paddingHorizontal: 24,
+    borderRadius: 16,
     alignItems: "center",
   },
   modalBtnText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "700",
+  },
+  modalBtnTextWhite: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
 });

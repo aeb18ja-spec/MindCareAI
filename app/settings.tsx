@@ -2,8 +2,19 @@ import ScreenLayout from "@/components/ScreenLayout";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Bell, Heart, Info, Lock, LogOut, Shield, User } from "lucide-react-native";
+import {
+  Bell,
+  ChevronRight,
+  Heart,
+  Info,
+  Lock,
+  LogOut,
+  Shield,
+  User,
+} from "lucide-react-native";
+import React from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -17,347 +28,370 @@ export default function SettingsScreen() {
   const { logout } = useAuth();
   const router = useRouter();
 
+  const cardStyle = [
+    styles.section,
+    {
+      backgroundColor: colors.card,
+      ...(isDarkMode
+        ? {
+            borderColor: colors.border,
+            borderWidth: 1,
+            boxShadow: "none",
+            elevation: 0,
+          }
+        : {
+            borderWidth: 0,
+            shadowColor: "#6C63FF",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.08,
+            shadowRadius: 20,
+            elevation: 4,
+          }),
+    },
+  ];
+
   return (
-    <ScreenLayout
-      gradientKey={isDarkMode ? "insights" : "primary"}
-    >
-      <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.header}>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>
-              Settings
-            </Text>
-          </View>
+    <ScreenLayout gradientKey={isDarkMode ? "insights" : "primary"}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            Settings
+          </Text>
+        </View>
 
-          <View
+        {/* Account Section */}
+        <View style={cardStyle}>
+          <Text style={[styles.sectionLabel, { color: colors.primary }]}>
+            ACCOUNT
+          </Text>
+
+          <TouchableOpacity
             style={[
-              styles.section,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                borderWidth: 1,
-              },
+              styles.optionRow,
+              { borderBottomColor: colors.borderLight },
             ]}
+            onPress={() => router.push("/profile")}
+            activeOpacity={0.6}
           >
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Account
-            </Text>
-
-            <TouchableOpacity
-              style={styles.optionRow}
-              onPress={() => router.push("/profile")}
+            <View
+              style={[
+                styles.optionIcon,
+                { backgroundColor: colors.primaryLight },
+              ]}
             >
-              <View
-                style={[
-                  styles.optionIcon,
-                  {
-                    backgroundColor: isDarkMode
-                      ? "rgba(124, 58, 237, 0.1)"
-                      : "rgba(243, 232, 255, 0.5)",
-                  },
-                ]}
-              >
-                <User color={colors.primary} size={24} />
-              </View>
-              <View style={styles.optionContent}>
-                <Text style={[styles.optionTitle, { color: colors.text }]}>
-                  Profile
-                </Text>
-                <Text
-                  style={[
-                    styles.optionDescription,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Manage your account details
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.optionRow}>
-              <View
-                style={[
-                  styles.optionIcon,
-                  {
-                    backgroundColor: isDarkMode
-                      ? "rgba(124, 58, 237, 0.1)"
-                      : "rgba(243, 232, 255, 0.5)",
-                  },
-                ]}
-              >
-                <Lock color={colors.primary} size={24} />
-              </View>
-              <View style={styles.optionContent}>
-                <Text style={[styles.optionTitle, { color: colors.text }]}>
-                  Privacy & Security
-                </Text>
-                <Text
-                  style={[
-                    styles.optionDescription,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Control your privacy settings
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <View style={styles.optionRow}>
-              <View
-                style={[
-                  styles.optionIcon,
-                  {
-                    backgroundColor: isDarkMode
-                      ? "rgba(124, 58, 237, 0.1)"
-                      : "rgba(243, 232, 255, 0.5)",
-                  },
-                ]}
-              >
-                <Info color={colors.primary} size={24} />
-              </View>
-              <View style={styles.optionContent}>
-                <Text style={[styles.optionTitle, { color: colors.text }]}>
-                  Appearance
-                </Text>
-                <Text
-                  style={[
-                    styles.optionDescription,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Toggle light and dark themes
-                </Text>
-              </View>
-              <ThemeToggle />
+              <User color={colors.primary} size={20} />
             </View>
-          </View>
-
-          <View
-            style={[
-              styles.section,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                borderWidth: 1,
-              },
-            ]}
-          >
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Notifications
-            </Text>
-
-            <View style={styles.optionRow}>
-              <View
-                style={[
-                  styles.optionIcon,
-                  {
-                    backgroundColor: isDarkMode
-                      ? "rgba(124, 58, 237, 0.1)"
-                      : "rgba(243, 232, 255, 0.5)",
-                  },
-                ]}
-              >
-                <Bell color={colors.primary} size={24} />
-              </View>
-              <View style={styles.optionContent}>
-                <Text style={[styles.optionTitle, { color: colors.text }]}>
-                  Daily Reminders
-                </Text>
-                <Text
-                  style={[
-                    styles.optionDescription,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Get notified to check in daily
-                </Text>
-              </View>
-              <View style={styles.reminderBadge}>
-                <Text style={[styles.reminderBadgeText, { color: colors.primary }]}>
-                  ON · 8:00 PM
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <View
-            style={[
-              styles.section,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                borderWidth: 1,
-              },
-            ]}
-          >
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Support & Information
-            </Text>
-
-            <TouchableOpacity style={styles.optionRow}>
-              <View
-                style={[
-                  styles.optionIcon,
-                  {
-                    backgroundColor: isDarkMode
-                      ? "rgba(124, 58, 237, 0.1)"
-                      : "rgba(243, 232, 255, 0.5)",
-                  },
-                ]}
-              >
-                <Heart color={colors.primary} size={24} />
-              </View>
-              <View style={styles.optionContent}>
-                <Text style={[styles.optionTitle, { color: colors.text }]}>
-                  Mental Health Resources
-                </Text>
-                <Text
-                  style={[
-                    styles.optionDescription,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Access helpful resources
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <View style={styles.safetyNote}>
+            <View style={styles.optionContent}>
+              <Text style={[styles.optionTitle, { color: colors.text }]}>
+                Profile
+              </Text>
               <Text
                 style={[
                   styles.optionDescription,
                   { color: colors.textSecondary },
                 ]}
               >
-                If you ever feel unsafe or in crisis, please contact local
-                emergency services or a trusted person. This app cannot respond
-                to emergencies.
+                Manage your account details
               </Text>
             </View>
+            <ChevronRight color={colors.textMuted} size={20} />
+          </TouchableOpacity>
 
-            <TouchableOpacity style={styles.optionRow}>
-              <View
-                style={[
-                  styles.optionIcon,
-                  {
-                    backgroundColor: isDarkMode
-                      ? "rgba(124, 58, 237, 0.1)"
-                      : "rgba(243, 232, 255, 0.5)",
-                  },
-                ]}
-              >
-                <Shield color={colors.primary} size={24} />
-              </View>
-              <View style={styles.optionContent}>
-                <Text style={[styles.optionTitle, { color: colors.text }]}>
-                  Safety Information
-                </Text>
-                <Text
-                  style={[
-                    styles.optionDescription,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Important safety guidelines
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.optionRow}>
-              <View
-                style={[
-                  styles.optionIcon,
-                  {
-                    backgroundColor: isDarkMode
-                      ? "rgba(124, 58, 237, 0.1)"
-                      : "rgba(243, 232, 255, 0.5)",
-                  },
-                ]}
-              >
-                <Info color={colors.primary} size={24} />
-              </View>
-              <View style={styles.optionContent}>
-                <Text style={[styles.optionTitle, { color: colors.text }]}>
-                  About MindCareAI
-                </Text>
-                <Text
-                  style={[
-                    styles.optionDescription,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Version 1.0.0
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.logoutSection}>
-            <TouchableOpacity
+          <TouchableOpacity
+            style={[
+              styles.optionRow,
+              { borderBottomColor: colors.borderLight },
+            ]}
+            activeOpacity={0.6}
+          >
+            <View
               style={[
-                styles.logoutButton,
+                styles.optionIcon,
                 {
-                  borderColor: colors.danger,
+                  backgroundColor: isDarkMode
+                    ? "rgba(0, 210, 255, 0.12)"
+                    : "#E0F9FF",
                 },
               ]}
-              onPress={async () => {
-                await logout();
-                router.replace("/login");
-              }}
             >
-              <LogOut color={colors.danger} size={20} />
-              <Text style={[styles.logoutText, { color: colors.danger }]}>
-                Log out
+              <Lock color={colors.accent} size={20} />
+            </View>
+            <View style={styles.optionContent}>
+              <Text style={[styles.optionTitle, { color: colors.text }]}>
+                Privacy & Security
               </Text>
-            </TouchableOpacity>
+              <Text
+                style={[
+                  styles.optionDescription,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                Control your privacy settings
+              </Text>
+            </View>
+            <ChevronRight color={colors.textMuted} size={20} />
+          </TouchableOpacity>
+
+          <View style={[styles.optionRow, styles.optionRowLast]}>
+            <View
+              style={[
+                styles.optionIcon,
+                { backgroundColor: colors.warningLight },
+              ]}
+            >
+              <Info color={colors.warning} size={20} />
+            </View>
+            <View style={styles.optionContent}>
+              <Text style={[styles.optionTitle, { color: colors.text }]}>
+                Appearance
+              </Text>
+              <Text
+                style={[
+                  styles.optionDescription,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                Toggle light and dark themes
+              </Text>
+            </View>
+            <ThemeToggle />
           </View>
-        </ScrollView>
+        </View>
+
+        {/* Notifications Section */}
+        <View style={cardStyle}>
+          <Text style={[styles.sectionLabel, { color: colors.primary }]}>
+            NOTIFICATIONS
+          </Text>
+
+          <View style={[styles.optionRow, styles.optionRowLast]}>
+            <View
+              style={[
+                styles.optionIcon,
+                { backgroundColor: colors.secondaryLight },
+              ]}
+            >
+              <Bell color={colors.secondary} size={20} />
+            </View>
+            <View style={styles.optionContent}>
+              <Text style={[styles.optionTitle, { color: colors.text }]}>
+                Daily Reminders
+              </Text>
+              <Text
+                style={[
+                  styles.optionDescription,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                Get notified to check in daily
+              </Text>
+            </View>
+            <LinearGradient
+              colors={colors.gradient.button as [string, string]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.reminderBadge}
+            >
+              <Text style={styles.reminderBadgeText}>ON · 8:00 PM</Text>
+            </LinearGradient>
+          </View>
+        </View>
+
+        {/* Support & Information Section */}
+        <View style={cardStyle}>
+          <Text style={[styles.sectionLabel, { color: colors.primary }]}>
+            SUPPORT & INFORMATION
+          </Text>
+
+          <TouchableOpacity
+            style={[
+              styles.optionRow,
+              { borderBottomColor: colors.borderLight },
+            ]}
+            activeOpacity={0.6}
+          >
+            <View
+              style={[
+                styles.optionIcon,
+                { backgroundColor: colors.successLight },
+              ]}
+            >
+              <Heart color={colors.success} size={20} />
+            </View>
+            <View style={styles.optionContent}>
+              <Text style={[styles.optionTitle, { color: colors.text }]}>
+                Mental Health Resources
+              </Text>
+              <Text
+                style={[
+                  styles.optionDescription,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                Access helpful resources
+              </Text>
+            </View>
+            <ChevronRight color={colors.textMuted} size={20} />
+          </TouchableOpacity>
+
+          {/* Safety Note with gradient left border */}
+          <View
+            style={[
+              styles.safetyNote,
+              { backgroundColor: colors.primaryLight },
+            ]}
+          >
+            <LinearGradient
+              colors={colors.gradient.primary as [string, string]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.safetyNoteBorder}
+            />
+            <Text
+              style={[styles.safetyNoteText, { color: colors.textSecondary }]}
+            >
+              If you ever feel unsafe or in crisis, please contact local
+              emergency services or a trusted person. This app cannot respond to
+              emergencies.
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.optionRow,
+              { borderBottomColor: colors.borderLight },
+            ]}
+            activeOpacity={0.6}
+          >
+            <View
+              style={[
+                styles.optionIcon,
+                { backgroundColor: colors.warningLight },
+              ]}
+            >
+              <Shield color={colors.warning} size={20} />
+            </View>
+            <View style={styles.optionContent}>
+              <Text style={[styles.optionTitle, { color: colors.text }]}>
+                Safety Information
+              </Text>
+              <Text
+                style={[
+                  styles.optionDescription,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                Important safety guidelines
+              </Text>
+            </View>
+            <ChevronRight color={colors.textMuted} size={20} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.optionRow, styles.optionRowLast]}
+            activeOpacity={0.6}
+          >
+            <View
+              style={[
+                styles.optionIcon,
+                { backgroundColor: colors.primaryLight },
+              ]}
+            >
+              <Info color={colors.primary} size={20} />
+            </View>
+            <View style={styles.optionContent}>
+              <Text style={[styles.optionTitle, { color: colors.text }]}>
+                About MindCareAI
+              </Text>
+              <Text
+                style={[
+                  styles.optionDescription,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                Learn more about this app
+              </Text>
+            </View>
+            <ChevronRight color={colors.textMuted} size={20} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Logout */}
+        <View style={styles.logoutSection}>
+          <TouchableOpacity
+            style={[
+              styles.logoutButton,
+              { backgroundColor: colors.dangerLight },
+            ]}
+            onPress={async () => {
+              await logout();
+              router.replace("/login");
+            }}
+            activeOpacity={0.7}
+          >
+            <LogOut color={colors.danger} size={20} />
+            <Text style={[styles.logoutText, { color: colors.danger }]}>
+              Log out
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* App Version Footer */}
+        <Text style={[styles.versionText, { color: colors.textMuted }]}>
+          MindCareAI v1.0.0
+        </Text>
+      </ScrollView>
     </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
   content: {
-    padding: 20,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 48,
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 28,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "700" as const,
+    fontSize: 32,
+    fontWeight: "800" as const,
+    letterSpacing: -0.5,
   },
   section: {
-    borderRadius: 16,
-    padding: 0,
-    marginBottom: 16,
-    boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.05)",
-    elevation: 2,
+    borderRadius: 24,
+    marginBottom: 20,
+    overflow: "hidden",
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600" as const,
-    marginBottom: 12,
-    paddingHorizontal: 20,
-    paddingTop: 16,
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: "700" as const,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 8,
   },
   optionRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: "transparent",
+  },
+  optionRowLast: {
+    borderBottomWidth: 0,
   },
   optionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
@@ -368,42 +402,71 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: 16,
     fontWeight: "600" as const,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   optionDescription: {
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: "400" as const,
+    lineHeight: 18,
   },
   reminderBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#CBD5F5",
-    backgroundColor: "rgba(124, 58, 237, 0.06)",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   reminderBadgeText: {
     fontSize: 12,
-    fontWeight: "600" as const,
+    fontWeight: "700" as const,
+    letterSpacing: 0.3,
+    color: "#FFFFFF",
+  },
+  safetyNote: {
+    marginHorizontal: 24,
+    marginBottom: 8,
+    paddingLeft: 20,
+    paddingRight: 16,
+    paddingVertical: 16,
+    borderRadius: 16,
+    overflow: "hidden",
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  safetyNoteBorder: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+  },
+  safetyNoteText: {
+    fontSize: 13,
+    lineHeight: 20,
+    flex: 1,
   },
   logoutSection: {
-    marginTop: 24,
+    marginTop: 12,
+    paddingHorizontal: 4,
   },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 999,
-    borderWidth: 1,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    gap: 10,
   },
   logoutText: {
     fontSize: 16,
-    fontWeight: "600" as const,
-    marginLeft: 8,
+    fontWeight: "700" as const,
   },
-  safetyNote: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+  versionText: {
+    fontSize: 13,
+    fontWeight: "400" as const,
+    textAlign: "center",
+    marginTop: 24,
+    marginBottom: 8,
   },
 });
