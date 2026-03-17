@@ -138,11 +138,15 @@ export default function VerifyOtpScreen() {
         params: { email },
       });
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Verification failed. Please try again.",
-      );
+      setLoading(false);
+      
+      const message = err instanceof Error ? err.message : "Verification failed. Please try again.";
+      
+      if (message.includes("already exists")) {
+        setError("An account with this email already exists. Please login instead.");
+      } else {
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -263,6 +267,15 @@ export default function VerifyOtpScreen() {
                 {error}
               </Text>
             </View>
+          )}
+
+          {error.includes("already exists") && (
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: colors.primary, marginTop: 8 }]}
+              onPress={() => router.replace("/login")}
+            >
+              <Text style={styles.buttonText}>Go to Login</Text>
+            </TouchableOpacity>
           )}
 
           <TouchableOpacity

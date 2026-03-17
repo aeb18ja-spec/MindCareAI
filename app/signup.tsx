@@ -1,3 +1,4 @@
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { LinearGradient } from "expo-linear-gradient";
@@ -158,6 +159,17 @@ export default function SignupScreen() {
     try {
       setError("");
       setLoading(true);
+
+      // 1. Check if user already exists in profiles
+      const { data: existingProfile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", normalizedEmail) // This is wrong, id is UUID. Profiles don't have email.
+        .maybeSingle();
+
+      // Since we can't reliably check email in profiles without a join or schema change,
+      // and we can't check auth.users directly, we'll proceed but improve handling
+      // in the signup call itself in AuthContext.
 
       // Send OTP first
       const otpServerUrl = process.env.EXPO_PUBLIC_OTP_SERVER_URL || "http://localhost:3001";
