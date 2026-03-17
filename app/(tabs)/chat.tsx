@@ -15,6 +15,7 @@ import {
     Shield,
     Sparkles,
     User,
+    X,
 } from "lucide-react-native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -38,7 +39,7 @@ const SUGGESTIONS = [
   { icon: MessageCircle, label: "I need someone to talk to", color: "#00D2FF" },
 ];
 
-export default function ChatScreen() {
+export default function ChatScreen({ onClose }: { onClose?: () => void } = {}) {
   const [input, setInput] = useState<string>("");
   const flatListRef = useRef<FlatList>(null);
   const { colors, isDarkMode } = useTheme();
@@ -264,14 +265,31 @@ export default function ChatScreen() {
             </View>
           </View>
         </View>
-        <View
-          style={[
-            styles.headerBadge,
-            { backgroundColor: colors.primaryLight },
-          ]}
-        >
-          <Sparkles color={colors.primary} size={16} />
-        </View>
+        {onClose ? (
+          <TouchableOpacity
+            onPress={onClose}
+            activeOpacity={0.7}
+            style={[
+              styles.headerBadge,
+              {
+                backgroundColor: isDarkMode
+                  ? colors.surface
+                  : colors.borderLight,
+              },
+            ]}
+          >
+            <X color={colors.text} size={18} strokeWidth={2.5} />
+          </TouchableOpacity>
+        ) : (
+          <View
+            style={[
+              styles.headerBadge,
+              { backgroundColor: colors.primaryLight },
+            ]}
+          >
+            <Sparkles color={colors.primary} size={16} />
+          </View>
+        )}
       </View>
 
       <KeyboardAvoidingView

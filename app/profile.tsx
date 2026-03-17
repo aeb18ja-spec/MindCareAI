@@ -156,9 +156,12 @@ export default function ProfileScreen() {
           <Text style={[styles.heroName, { color: colors.text }]}>
             {currentUser.name || "User"}
           </Text>
-          <Text style={[styles.emailText, { color: colors.textSecondary }]}>
-            {currentUser.email}
-          </Text>
+          <View style={[styles.emailRow, { backgroundColor: isDarkMode ? colors.surface : colors.borderLight }, isDarkMode && { borderColor: colors.border, borderWidth: 1 }]}>
+            <Mail color={colors.primary} size={14} />
+            <Text style={[styles.emailText, { color: colors.text }]}>
+              {currentUser.email}
+            </Text>
+          </View>
 
           {/* About pill */}
           <View
@@ -477,10 +480,18 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     marginBottom: 4,
   },
+  emailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 14,
+    marginBottom: 16,
+  },
   emailText: {
     fontSize: 15,
-    fontWeight: "400" as const,
-    marginBottom: 16,
+    fontWeight: "500" as const,
   },
   aboutPill: {
     paddingHorizontal: 20,

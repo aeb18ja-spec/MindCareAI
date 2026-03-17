@@ -1,7 +1,7 @@
 import ChatScreen from "@/app/(tabs)/chat";
 import { useTheme } from "@/contexts/ThemeContext";
 import { LinearGradient } from "expo-linear-gradient";
-import { MessageCircle, X } from "lucide-react-native";
+import { MessageCircle } from "lucide-react-native";
 import React, { useRef, useState } from "react";
 import {
   Animated,
@@ -58,18 +58,19 @@ export default function ChatFloatingButton() {
   return (
     <>
       <Animated.View
+        pointerEvents={visible ? "none" : "auto"}
         style={[
           styles.fabWrap,
           { transform: [{ scale: scaleAnim }] },
+          visible && { opacity: 0 },
         ]}
       >
-        {/* Subtle pulse ring */}
         <Animated.View
           style={[
             styles.pulseRing,
             {
               backgroundColor: colors.primary,
-              opacity: 0.12,
+              opacity: visible ? 0 : 0.12,
               transform: [{ scale: pulseAnim }],
             },
           ]}
@@ -104,25 +105,10 @@ export default function ChatFloatingButton() {
       <Modal
         visible={visible}
         animationType="slide"
-        transparent
         onRequestClose={closeChat}
       >
-        <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
-          <View style={styles.modalShell}>
-            <Pressable
-              onPress={closeChat}
-              style={[
-                styles.closeButton,
-                { backgroundColor: "rgba(26, 29, 46, 0.7)" },
-              ]}
-              accessibilityLabel="Close wellness chat"
-            >
-              <X color="#FFFFFF" size={18} strokeWidth={2.5} />
-            </Pressable>
-            <View style={styles.modalContent}>
-              <ChatScreen />
-            </View>
-          </View>
+        <View style={styles.modalContent}>
+          <ChatScreen onClose={closeChat} />
         </View>
       </Modal>
     </>
@@ -150,24 +136,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  modalShell: {
-    flex: 1,
-  },
-  closeButton: {
-    position: "absolute",
-    top: Platform.OS === "ios" ? 54 : 34,
-    right: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1100,
   },
   modalContent: {
     flex: 1,
