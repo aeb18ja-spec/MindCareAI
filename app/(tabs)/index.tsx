@@ -4,7 +4,7 @@ import { useMood } from "@/contexts/MoodContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { MOOD_CONFIG, MoodType } from "@/types/mood";
 import { LinearGradient } from "expo-linear-gradient";
-import { CheckCircle } from "lucide-react-native";
+import { CheckCircle, Sparkles } from "lucide-react-native";
 import React, { useState } from "react";
 import {
     Dimensions,
@@ -95,355 +95,509 @@ export default function HomeScreen() {
     }
   };
 
+  const stressColor =
+    stressLevel <= 3
+      ? colors.success
+      : stressLevel <= 6
+        ? colors.warning
+        : colors.danger;
+
+  const cardStyle = {
+    backgroundColor: colors.card,
+    ...(isDarkMode
+      ? { borderColor: colors.border, borderWidth: 1 }
+      : {}),
+  };
+
+  const cardShadow = isDarkMode
+    ? {}
+    : {
+        shadowColor: "#6C63FF",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+        elevation: 3,
+      };
+
+  const gradientPrimary: [string, string, ...string[]] =
+    Array.isArray(colors.gradient.primary) &&
+    colors.gradient.primary.length >= 2
+      ? (colors.gradient.primary as [string, string, ...string[]])
+      : ["#6C63FF", "#8B5CF6"];
+
+  const gradientAccent: [string, string, ...string[]] =
+    Array.isArray(colors.gradient.accent) &&
+    colors.gradient.accent.length >= 2
+      ? (colors.gradient.accent as [string, string, ...string[]])
+      : ["#00D2FF", "#7B68EE"];
+
+  const gradientButton: [string, string, ...string[]] =
+    Array.isArray(colors.gradient.button) &&
+    colors.gradient.button.length >= 2
+      ? (colors.gradient.button as [string, string, ...string[]])
+      : ["#6C63FF", "#8B5CF6"];
+
+  const moodCardWidth = (width - 40 - 12 * 4) / 5;
+
   return (
-      <ScreenLayout gradientKey="home">
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-            <View style={styles.header}>
-              <Text style={[styles.greeting, { color: colors.text }]}>
-                {greeting}
-              </Text>
-              <Text style={[styles.date, { color: colors.textSecondary }]}>
-                {today}
+    <ScreenLayout gradientKey="home">
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Welcome Banner ── */}
+        <LinearGradient
+          colors={gradientPrimary}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.welcomeBanner}
+        >
+          <View style={styles.welcomeBannerContent}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.welcomeDate}>{today}</Text>
+              <Text style={styles.welcomeGreeting}>{greeting}</Text>
+              <Text style={styles.welcomeSubtitle}>
+                How are you feeling today?
               </Text>
             </View>
+            <View style={styles.welcomeIconOuter}>
+              <View style={styles.welcomeIconInner}>
+                <Sparkles color="#FFFFFF" size={28} strokeWidth={2} />
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
 
-        <View
-          style={[
-            styles.streakCard,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              borderWidth: 1,
-            },
-          ]}
+        {/* ── Streak Card ── */}
+        <LinearGradient
+          colors={gradientAccent}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.streakCard, cardShadow]}
         >
-          <Text style={styles.streakEmoji}>🔥</Text>
-          <View style={styles.streakTextWrap}>
-            <Text style={[styles.streakCount, { color: colors.text }]}>
-              {moodStreak} Day{moodStreak !== 1 ? "s" : ""} Streak
+          <View style={styles.streakLeft}>
+            <View style={styles.streakNumberRow}>
+              <Text style={styles.streakNumber}>{moodStreak}</Text>
+              <Text style={styles.streakEmoji}>{"\uD83D\uDD25"}</Text>
+            </View>
+            <Text style={styles.streakLabel}>
+              day{moodStreak !== 1 ? "s" : ""} streak
             </Text>
-            <Text style={[styles.streakMessage, { color: colors.textSecondary }]}>
+          </View>
+          <View style={styles.streakDivider} />
+          <View style={styles.streakRight}>
+            <Text style={styles.streakMessage}>
               {moodStreak > 0 ? moodStreakMessage : "Log a mood today to start!"}
             </Text>
           </View>
-        </View>
+        </LinearGradient>
 
+        {/* ── Today's Check-in Completed Card ── */}
         {todayMood && (
+          <View
+            style={[
+              styles.completedCard,
+              cardStyle,
+              cardShadow,
+              { borderLeftWidth: 4, borderLeftColor: colors.success },
+            ]}
+          >
+            <View style={styles.completedHeader}>
+              <View
+                style={[
+                  styles.completedIconWrap,
+                  { backgroundColor: colors.successLight },
+                ]}
+              >
+                <CheckCircle color={colors.success} size={22} />
+              </View>
+              <View style={styles.completedHeaderText}>
+                <Text style={[styles.completedTitle, { color: colors.text }]}>
+                  Today's check-in
+                </Text>
+                <View
+                  style={[
+                    styles.completedBadge,
+                    { backgroundColor: colors.successLight },
+                  ]}
+                >
+                  <Text
+                    style={[styles.completedBadgeText, { color: colors.success }]}
+                  >
+                    Completed
+                  </Text>
+                </View>
+              </View>
+            </View>
+
             <View
               style={[
-                styles.completedCard,
+                styles.todayMoodDisplay,
                 {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  borderWidth: 1,
+                  backgroundColor: isDarkMode
+                    ? colors.surface
+                    : `${MOOD_CONFIG[todayMood.mood].color}12`,
                 },
               ]}
             >
-              <CheckCircle color={colors.success} size={40} />
-              <Text style={[styles.completedTitle, { color: colors.text }]}>
-                Your latest check-in today
+              <Text style={styles.todayMoodEmoji}>
+                {MOOD_CONFIG[todayMood.mood].emoji}
               </Text>
-              <View style={styles.todayMoodDisplay}>
-                <Text style={styles.todayMoodEmoji}>
-                  {MOOD_CONFIG[todayMood.mood].emoji}
-                </Text>
+              <View
+                style={[
+                  styles.todayMoodPill,
+                  {
+                    backgroundColor: `${MOOD_CONFIG[todayMood.mood].color}18`,
+                  },
+                ]}
+              >
                 <Text
                   style={[
                     styles.todayMoodLabel,
-                    { color: colors.textSecondary },
+                    { color: MOOD_CONFIG[todayMood.mood].color },
                   ]}
                 >
                   Feeling {MOOD_CONFIG[todayMood.mood].label.toLowerCase()}
                 </Text>
               </View>
-              {todayMood.note && (
-                <Text
-                  style={[styles.todayNote, { color: colors.textSecondary }]}
-                >
-                  &quot;{todayMood.note}&quot;
-                </Text>
-              )}
-              <Text
-                style={[
-                  styles.encouragementText,
-                  { color: colors.textSecondary },
-                  { marginTop: 12, fontSize: 14 },
-                ]}
-              >
-                You can log another mood anytime below.
-              </Text>
             </View>
+
+            {todayMood.note && (
+              <Text
+                style={[styles.todayNote, { color: colors.textSecondary }]}
+              >
+                &quot;{todayMood.note}&quot;
+              </Text>
+            )}
+
+            <Text
+              style={[
+                styles.encouragementText,
+                { color: colors.textMuted },
+              ]}
+            >
+              You can log another mood anytime below.
+            </Text>
+          </View>
         )}
 
-          <View
-            style={[
-              styles.card,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                borderWidth: 1,
-              },
-            ]}
-          >
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              How are you feeling today?
-            </Text>
-            <View style={styles.moodGrid}>
-              {(Object.keys(MOOD_CONFIG) as MoodType[]).map((mood) => {
-                const config = MOOD_CONFIG[mood];
-                const isSelected = selectedMood === mood;
-                return (
+        {/* ── Mood Selector ── */}
+        <View style={[styles.card, cardStyle, cardShadow]}>
+          <Text style={[styles.sectionLabel, { color: colors.primary }]}>
+            CHECK IN
+          </Text>
+          <View style={styles.moodGrid}>
+            {(Object.keys(MOOD_CONFIG) as MoodType[]).map((mood) => {
+              const config = MOOD_CONFIG[mood];
+              const isSelected = selectedMood === mood;
+              return (
+                <TouchableOpacity
+                  key={mood}
+                  activeOpacity={0.7}
+                  onPress={() => handleMoodSelect(mood)}
+                  style={{ width: moodCardWidth }}
+                >
+                  {isSelected ? (
+                    <LinearGradient
+                      colors={gradientPrimary}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={[
+                        styles.moodCard,
+                        { transform: [{ scale: 1.05 }] },
+                      ]}
+                    >
+                      <Text style={styles.moodEmoji}>{config.emoji}</Text>
+                      <Text style={[styles.moodLabel, { color: "#FFFFFF" }]}>
+                        {config.label}
+                      </Text>
+                    </LinearGradient>
+                  ) : (
+                    <View
+                      style={[
+                        styles.moodCard,
+                        {
+                          backgroundColor: isDarkMode
+                            ? colors.surface
+                            : colors.card,
+                        },
+                        isDarkMode
+                          ? { borderColor: colors.border, borderWidth: 1 }
+                          : {
+                              shadowColor: "#6C63FF",
+                              shadowOffset: { width: 0, height: 2 },
+                              shadowOpacity: 0.05,
+                              shadowRadius: 8,
+                              elevation: 2,
+                            },
+                      ]}
+                    >
+                      <Text style={styles.moodEmoji}>{config.emoji}</Text>
+                      <Text
+                        style={[
+                          styles.moodLabel,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        {config.label}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* ── Stress Level ── */}
+        {selectedMood && (
+          <View style={[styles.card, cardStyle, cardShadow]}>
+            <View style={styles.stressHeaderRow}>
+              <Text style={[styles.sectionLabel, { color: colors.primary }]}>
+                STRESS LEVEL
+              </Text>
+              <View
+                style={[
+                  styles.stressBadge,
+                  { backgroundColor: stressColor + "18" },
+                ]}
+              >
+                <Text
+                  style={[styles.stressBadgeText, { color: stressColor }]}
+                >
+                  {stressLevel}/10
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.stressCirclesRow}>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => {
+                const isActive = stressLevel === level;
+                const circleSize = (width - 40 - 48 - 9 * 8) / 10;
+                return isActive ? (
                   <TouchableOpacity
-                    key={mood}
+                    key={level}
+                    activeOpacity={0.7}
+                    onPress={() => setStressLevel(level)}
                     style={[
-                      styles.moodButton,
-                      {
-                        backgroundColor: isDarkMode
-                          ? isSelected
-                            ? config.color + "30"
-                            : colors.background
-                          : isSelected
-                            ? config.color + "20"
-                            : "#F9FAFB",
-                        borderColor: isSelected ? config.color : colors.border,
-                        borderWidth: 2,
-                      },
+                      styles.stressCircleWrap,
+                      { width: circleSize, height: circleSize },
                     ]}
-                    onPress={() => handleMoodSelect(mood)}
+                  >
+                    <LinearGradient
+                      colors={gradientPrimary}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={[
+                        styles.stressCircle,
+                        { width: circleSize, height: circleSize, borderRadius: circleSize / 2 },
+                      ]}
+                    >
+                      <Text style={styles.stressCircleTextActive}>
+                        {level}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    key={level}
+                    activeOpacity={0.7}
+                    onPress={() => setStressLevel(level)}
+                    style={[
+                      styles.stressCircleInactive,
+                      {
+                        width: circleSize,
+                        height: circleSize,
+                        borderRadius: circleSize / 2,
+                        backgroundColor: isDarkMode
+                          ? colors.surface
+                          : colors.borderLight,
+                      },
+                      isDarkMode
+                        ? { borderColor: colors.border, borderWidth: 1 }
+                        : {},
+                    ]}
                   >
                     <Text
                       style={[
-                        styles.moodEmoji,
-                        { color: isSelected ? config.color : colors.text },
+                        styles.stressCircleText,
+                        { color: colors.textSecondary },
                       ]}
                     >
-                      {config.emoji}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.moodLabel,
-                        {
-                          color: isSelected
-                            ? config.color
-                            : colors.textSecondary,
-                        },
-                        isSelected && { fontWeight: "700" as const },
-                      ]}
-                    >
-                      {config.label}
+                      {level}
                     </Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
-          </View>
 
-          {selectedMood && (
-            <View
-              style={[
-                styles.card,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  borderWidth: 1,
-                },
-              ]}
-            >
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                Stress Level
-              </Text>
-              <View style={styles.stressContainer}>
-                <View
-                  style={[
-                    styles.stressBar,
-                    {
-                      backgroundColor: isDarkMode
-                        ? colors.background
-                        : "#E5E7EB",
-                    },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.stressBarFill,
-                      {
-                        width: `${(stressLevel / 10) * 100}%`,
-                        backgroundColor:
-                          stressLevel <= 3
-                            ? colors.success
-                            : stressLevel <= 6
-                              ? colors.warning
-                              : colors.danger,
-                      },
-                    ]}
-                  />
-                </View>
-                <View style={styles.stressButtons}>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => (
-                    <TouchableOpacity
-                      key={level}
-                      style={[
-                        styles.stressButton,
-                        {
-                          backgroundColor: isDarkMode
-                            ? stressLevel === level
-                              ? colors.primary
-                              : colors.background
-                            : stressLevel === level
-                              ? colors.primary
-                              : "#F9FAFB",
-                          borderColor:
-                            stressLevel === level
-                              ? colors.primary
-                              : colors.border,
-                        },
-                        stressLevel === level && styles.stressButtonActive,
-                      ]}
-                      onPress={() => setStressLevel(level)}
-                    >
-                      <Text
-                        style={[
-                          styles.stressButtonText,
-                          {
-                            color:
-                              stressLevel === level
-                                ? isDarkMode
-                                  ? "#FFFFFF"
-                                  : "#FFFFFF"
-                                : colors.textSecondary,
-                          },
-                          stressLevel === level &&
-                            styles.stressButtonTextActive,
-                        ]}
-                      >
-                        {level}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            </View>
-          )}
-
-          {selectedMood && (
-            <View
-              style={[
-                styles.card,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  borderWidth: 1,
-                },
-              ]}
-            >
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                Activities
-              </Text>
-              <View style={styles.activityGrid}>
-                {ACTIVITIES.map((activity) => {
-                  const isSelected = selectedActivities.includes(activity);
-                  return (
-                    <TouchableOpacity
-                      key={activity}
-                      style={[
-                        styles.activityChip,
-                        {
-                          backgroundColor: isDarkMode
-                            ? isSelected
-                              ? colors.primary
-                              : colors.background
-                            : isSelected
-                              ? colors.primary
-                              : "#F9FAFB",
-                          borderColor: isSelected
-                            ? colors.primary
-                            : colors.border,
-                        },
-                        isSelected && styles.activityChipActive,
-                      ]}
-                      onPress={() => toggleActivity(activity)}
-                    >
-                      <Text
-                        style={[
-                          styles.activityText,
-                          {
-                            color: isSelected
-                              ? "#FFFFFF"
-                              : colors.textSecondary,
-                          },
-                          isSelected && styles.activityTextActive,
-                        ]}
-                      >
-                        {activity}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-          )}
-
-          {selectedMood && (
-            <View
-              style={[
-                styles.card,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  borderWidth: 1,
-                },
-              ]}
-            >
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                Quick Note (Optional)
-              </Text>
-              <TextInput
+            {/* Visual stress bar */}
+            <View style={styles.stressBarWrap}>
+              <View
                 style={[
-                  styles.noteInput,
+                  styles.stressBarBg,
                   {
-                    backgroundColor: isDarkMode ? colors.background : "#F9FAFB",
-                    color: colors.text,
-                    borderColor: colors.border,
-                    borderWidth: 1,
+                    backgroundColor: isDarkMode
+                      ? colors.surface
+                      : colors.borderLight,
                   },
                 ]}
-                placeholder="What's on your mind?"
-                placeholderTextColor={colors.textSecondary}
-                value={note}
-                onChangeText={setNote}
-                multiline
-                numberOfLines={4}
-              />
+              >
+                <LinearGradient
+                  colors={
+                    stressLevel <= 3
+                      ? ([colors.success, "#6EE7B7"] as [string, string])
+                      : stressLevel <= 6
+                        ? ([colors.warning, "#FFD166"] as [string, string])
+                        : ([colors.danger, "#FF8E8E"] as [string, string])
+                  }
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[
+                    styles.stressBarFill,
+                    { width: `${stressLevel * 10}%` as `${number}%` },
+                  ]}
+                />
+              </View>
+              <View style={styles.stressBarLabels}>
+                <Text
+                  style={[styles.stressBarLabel, { color: colors.textMuted }]}
+                >
+                  Low
+                </Text>
+                <Text
+                  style={[styles.stressBarLabel, { color: colors.textMuted }]}
+                >
+                  High
+                </Text>
+              </View>
             </View>
-          )}
+          </View>
+        )}
 
-          {submitError && (
+        {/* ── Activities ── */}
+        {selectedMood && (
+          <View style={[styles.card, cardStyle, cardShadow]}>
+            <Text style={[styles.sectionLabel, { color: colors.primary }]}>
+              ACTIVITIES
+            </Text>
+            <View style={styles.activityGrid}>
+              {ACTIVITIES.map((activity) => {
+                const isSelected = selectedActivities.includes(activity);
+                return (
+                  <TouchableOpacity
+                    key={activity}
+                    activeOpacity={0.7}
+                    onPress={() => toggleActivity(activity)}
+                  >
+                    {isSelected ? (
+                      <LinearGradient
+                        colors={gradientPrimary}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.activityPill}
+                      >
+                        <Text style={styles.activityTextSelected}>
+                          {activity}
+                        </Text>
+                      </LinearGradient>
+                    ) : (
+                      <View
+                        style={[
+                          styles.activityPill,
+                          {
+                            backgroundColor: isDarkMode
+                              ? colors.surface
+                              : colors.borderLight,
+                          },
+                          isDarkMode
+                            ? { borderColor: colors.border, borderWidth: 1 }
+                            : {},
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.activityText,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          {activity}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* ── Note Input ── */}
+        {selectedMood && (
+          <View style={[styles.card, cardStyle, cardShadow]}>
+            <Text style={[styles.sectionLabel, { color: colors.primary }]}>
+              QUICK NOTE
+            </Text>
+            <TextInput
+              style={[
+                styles.noteInput,
+                {
+                  backgroundColor: isDarkMode
+                    ? colors.surface
+                    : colors.borderLight,
+                  color: colors.text,
+                },
+                isDarkMode
+                  ? { borderColor: colors.border, borderWidth: 1 }
+                  : {},
+              ]}
+              placeholder="What's on your mind today..."
+              placeholderTextColor={colors.textMuted}
+              value={note}
+              onChangeText={setNote}
+              multiline
+              numberOfLines={4}
+            />
+          </View>
+        )}
+
+        {/* ── Submit Error ── */}
+        {submitError && (
+          <View
+            style={[
+              styles.errorContainer,
+              { backgroundColor: colors.dangerLight },
+            ]}
+          >
             <Text style={[styles.submitError, { color: colors.danger }]}>
               {submitError}
             </Text>
-          )}
+          </View>
+        )}
 
-          {selectedMood && (
-            <TouchableOpacity
-              style={styles.submitButton}
-              onPress={handleSubmit}
-              disabled={isSubmitting}
+        {/* ── Check-In Button ── */}
+        {selectedMood && (
+          <TouchableOpacity
+            style={styles.submitButtonWrap}
+            onPress={handleSubmit}
+            disabled={isSubmitting}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={gradientButton}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[
+                styles.submitGradient,
+                (isSubmitting || !selectedMood) && styles.submitDisabled,
+              ]}
             >
-              <LinearGradient
-                colors={
-                  Array.isArray(colors.gradient.primary) &&
-                  colors.gradient.primary.length >= 2
-                    ? (colors.gradient.primary as [string, string, ...string[]])
-                    : ["#7C3AED", "#A78BFA"]
-                }
-                style={[styles.submitGradient, isSubmitting && styles.submitButtonDisabled]}
-              >
-                <Text style={styles.submitText}>
-                  {isSubmitting ? "Saving…" : "Save Today's Check-in"}
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
+              <Text style={styles.submitText}>
+                {isSubmitting ? "Saving..." : "Check In"}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </ScreenLayout>
   );
@@ -452,204 +606,346 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
-    paddingBottom: 100,
+    paddingBottom: 120,
+    gap: 18,
   },
-  header: {
-    marginBottom: 24,
+
+  /* ── Welcome Banner ── */
+  welcomeBanner: {
+    borderRadius: 24,
+    overflow: "hidden",
+    shadowColor: "#6C63FF",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 8,
   },
+  welcomeBannerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 24,
+    paddingVertical: 28,
+  },
+  welcomeDate: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.7)",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    marginBottom: 6,
+  },
+  welcomeGreeting: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: -0.5,
+    lineHeight: 30,
+  },
+  welcomeSubtitle: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "rgba(255, 255, 255, 0.8)",
+    marginTop: 4,
+  },
+  welcomeIconOuter: {
+    width: 64,
+    height: 64,
+    borderRadius: 22,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 16,
+  },
+  welcomeIconInner: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  /* ── Streak Card ── */
   streakCard: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
+    borderRadius: 24,
+    padding: 22,
+    shadowColor: "#00D2FF",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 6,
+  },
+  streakLeft: {
+    alignItems: "center",
+    paddingRight: 20,
+  },
+  streakNumberRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  streakNumber: {
+    fontSize: 40,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    letterSpacing: -1,
   },
   streakEmoji: {
-    fontSize: 32,
-    marginRight: 14,
+    fontSize: 26,
   },
-  streakTextWrap: {
+  streakLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.85)",
+    marginTop: 2,
+  },
+  streakDivider: {
+    width: 1,
+    height: 48,
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
+    marginRight: 20,
+  },
+  streakRight: {
     flex: 1,
-  },
-  streakCount: {
-    fontSize: 18,
-    fontWeight: "700",
   },
   streakMessage: {
     fontSize: 14,
-    marginTop: 4,
+    fontWeight: "500",
+    color: "rgba(255, 255, 255, 0.8)",
+    lineHeight: 20,
   },
-  greeting: {
-    fontSize: 32,
-    fontWeight: "700" as const,
-    marginBottom: 4,
+
+  /* ── Completed Card ── */
+  completedCard: {
+    borderRadius: 24,
+    padding: 22,
   },
-  date: {
-    fontSize: 16,
-  },
-  card: {
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-    boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.05)",
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600" as const,
-    marginBottom: 16,
-  },
-  moodGrid: {
+  completedHeader: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
+    alignItems: "center",
+    marginBottom: 16,
   },
-  moodButton: {
-    flex: 1,
-    aspectRatio: 1,
-    borderRadius: 16,
-    borderWidth: 2,
+  completedIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    minWidth: (width - 60) / 5, // Show 5 moods per row on small screens
-    margin: 2,
+  },
+  completedHeaderText: {
+    marginLeft: 12,
+    gap: 5,
+  },
+  completedTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: -0.2,
+  },
+  completedBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+  },
+  completedBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
+  todayMoodDisplay: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 18,
+    padding: 14,
+    gap: 12,
+  },
+  todayMoodEmoji: {
+    fontSize: 38,
+  },
+  todayMoodPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 50,
+  },
+  todayMoodLabel: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  todayNote: {
+    fontSize: 14,
+    fontStyle: "italic",
+    marginTop: 14,
+    paddingHorizontal: 4,
+    lineHeight: 21,
+  },
+  encouragementText: {
+    fontSize: 12,
+    marginTop: 10,
+    fontWeight: "500",
+  },
+
+  /* ── Generic Card ── */
+  card: {
+    borderRadius: 24,
+    padding: 22,
+  },
+
+  /* ── Section Label ── */
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+    marginBottom: 16,
+    textTransform: "uppercase",
+  },
+
+  /* ── Mood Grid ── */
+  moodGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  moodCard: {
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 4,
   },
   moodEmoji: {
-    fontSize: 28,
-    marginBottom: 4,
+    fontSize: 32,
+    marginBottom: 6,
   },
   moodLabel: {
     fontSize: 11,
-    fontWeight: "500" as const,
+    fontWeight: "600",
+    textAlign: "center",
   },
-  stressContainer: {
-    gap: 16,
+
+  /* ── Stress Level ── */
+  stressHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
   },
-  stressBar: {
-    height: 8,
-    borderRadius: 4,
+  stressBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  stressBadgeText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  stressCirclesRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  stressCircleWrap: {
+    borderRadius: 100,
+    overflow: "hidden",
+  },
+  stressCircle: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stressCircleTextActive: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  stressCircleInactive: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stressCircleText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  stressBarWrap: {
+    marginTop: 18,
+  },
+  stressBarBg: {
+    height: 10,
+    borderRadius: 5,
     overflow: "hidden",
   },
   stressBarFill: {
     height: "100%",
-    borderRadius: 4,
+    borderRadius: 5,
   },
-  stressButtons: {
+  stressBarLabels: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 4,
+    marginTop: 6,
   },
-  stressButton: {
-    flex: 1,
-    height: 32,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
+  stressBarLabel: {
+    fontSize: 11,
+    fontWeight: "500",
   },
-  stressButtonActive: {
-    backgroundColor: "#7C3AED",
-    borderColor: "#7C3AED",
-  },
-  stressButtonText: {
-    fontSize: 12,
-    fontWeight: "600" as const,
-  },
-  stressButtonTextActive: {
-    color: "#FFFFFF",
-  },
+
+  /* ── Activities ── */
   activityGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: 10,
   },
-  activityChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  activityChipActive: {
-    backgroundColor: "#7C3AED",
-    borderColor: "#7C3AED",
+  activityPill: {
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: 50,
   },
   activityText: {
     fontSize: 14,
-    fontWeight: "500" as const,
+    fontWeight: "500",
   },
-  activityTextActive: {
+  activityTextSelected: {
+    fontSize: 14,
+    fontWeight: "600",
     color: "#FFFFFF",
   },
+
+  /* ── Note Input ── */
   noteInput: {
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
+    borderRadius: 16,
+    padding: 18,
+    fontSize: 15,
     textAlignVertical: "top",
     minHeight: 100,
+    lineHeight: 22,
+  },
+
+  /* ── Submit ── */
+  errorContainer: {
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   submitError: {
     fontSize: 14,
-    marginTop: 8,
-    marginBottom: 4,
+    fontWeight: "500",
   },
-  submitButton: {
+  submitButtonWrap: {
     borderRadius: 16,
     overflow: "hidden",
-    marginTop: 8,
   },
-  submitButtonDisabled: {
-    opacity: 0.7,
+  submitDisabled: {
+    opacity: 0.6,
   },
   submitGradient: {
     paddingVertical: 18,
     alignItems: "center",
+    borderRadius: 16,
   },
   submitText: {
     color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "600" as const,
-  },
-  completedCard: {
-    borderRadius: 24,
-    padding: 32,
-    alignItems: "center",
-    boxShadow: "0px 4px 12px rgba(124, 58, 237, 0.1)",
-    elevation: 4,
-  },
-  completedTitle: {
-    fontSize: 22,
-    fontWeight: "700" as const,
-    marginTop: 16,
-    marginBottom: 20,
-  },
-  todayMoodDisplay: {
-    alignItems: "center",
-    gap: 8,
-  },
-  todayMoodEmoji: {
-    fontSize: 64,
-  },
-  todayMoodLabel: {
-    fontSize: 18,
-    fontWeight: "500" as const,
-  },
-  todayNote: {
-    fontSize: 16,
-    fontStyle: "italic",
-    textAlign: "center",
-    marginTop: 16,
-    paddingHorizontal: 16,
-  },
-  encouragementCard: {
-    borderRadius: 16,
-    padding: 20,
-    marginTop: 16,
-    borderWidth: 1,
-  },
-  encouragementText: {
-    fontSize: 15,
-    textAlign: "center",
-    lineHeight: 22,
+    fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
 });

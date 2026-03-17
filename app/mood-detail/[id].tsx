@@ -2,19 +2,20 @@ import Header from "@/components/Header";
 import { useMood } from "@/contexts/MoodContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { MOOD_CONFIG, MoodType } from "@/types/mood";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Pencil, Trash2 } from "lucide-react-native";
 import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -38,7 +39,7 @@ function formatDate(dateStr: string): string {
 }
 
 function formatTime(iso: string | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "\u2014";
   return new Date(iso).toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
@@ -162,7 +163,7 @@ export default function MoodDetailScreen() {
           <>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[styles.notFound, { color: colors.textSecondary }]}>
-              Loading…
+              Loading\u2026
             </Text>
           </>
         ) : (
@@ -172,9 +173,16 @@ export default function MoodDetailScreen() {
             </Text>
             <TouchableOpacity
               onPress={goBack}
-              style={[styles.backBtn, { backgroundColor: colors.primary }]}
+              activeOpacity={0.8}
             >
-              <Text style={styles.backBtnText}>Go back</Text>
+              <LinearGradient
+                colors={colors.gradient?.button ?? ['#6C63FF', '#8B5CF6']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.backBtn}
+              >
+                <Text style={styles.backBtnText}>Go back</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </>
         )}
@@ -192,129 +200,186 @@ export default function MoodDetailScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* Main Card */}
           <View
             style={[
               styles.card,
               {
                 backgroundColor: colors.card,
-                borderColor: colors.border,
-                borderWidth: 1,
               },
+              isDarkMode
+                ? { borderColor: colors.border, borderWidth: 1 }
+                : {
+                    shadowColor: '#6C63FF',
+                    shadowOffset: { width: 0, height: 6 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 20,
+                    elevation: 5,
+                  },
             ]}
           >
+            {/* Mood Header */}
             <View style={styles.moodHeader}>
-              <Text style={styles.emoji}>{config?.emoji ?? "😐"}</Text>
-              <Text style={[styles.moodLabel, { color: colors.text }]}>
-                {config?.label ?? entry.mood}
-              </Text>
+              <View style={[styles.emojiWrap, { backgroundColor: colors.primaryLight }]}>
+                <Text style={styles.emoji}>{config?.emoji ?? "\uD83D\uDE10"}</Text>
+              </View>
+              <View style={styles.moodHeaderText}>
+                <Text style={[styles.moodLabel, { color: colors.text }]}>
+                  {config?.label ?? entry.mood}
+                </Text>
+                <Text style={[styles.moodSub, { color: colors.textMuted }]}>
+                  Current mood
+                </Text>
+              </View>
             </View>
-            <View style={styles.meta}>
-              <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
-                Date
-              </Text>
-              <Text style={[styles.metaValue, { color: colors.text }]}>
-                {formatDate(entry.date)}
-              </Text>
-            </View>
-            <View style={styles.meta}>
-              <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
-                Time
-              </Text>
-              <Text style={[styles.metaValue, { color: colors.text }]}>
-                {formatTime(entry.createdAt)}
-              </Text>
-            </View>
-            <View style={styles.meta}>
-              <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
-                Stress level
-              </Text>
-              <Text style={[styles.metaValue, { color: colors.text }]}>
-                {entry.stressLevel}/10
-              </Text>
-            </View>
-            {entry.activities && entry.activities.length > 0 && (
+
+            {/* Separator */}
+            <View style={[styles.separator, { backgroundColor: colors.borderLight }]} />
+
+            {/* Meta Rows */}
+            <View style={styles.metaSection}>
               <View style={styles.meta}>
-                <Text
-                  style={[styles.metaLabel, { color: colors.textSecondary }]}
-                >
-                  Activities
+                <Text style={[styles.metaLabel, { color: colors.textMuted }]}>
+                  DATE
                 </Text>
                 <Text style={[styles.metaValue, { color: colors.text }]}>
-                  {entry.activities.join(", ")}
+                  {formatDate(entry.date)}
                 </Text>
               </View>
-            )}
-            {entry.note ? (
+              <View style={[styles.metaSeparator, { backgroundColor: colors.borderLight }]} />
+
               <View style={styles.meta}>
-                <Text
-                  style={[styles.metaLabel, { color: colors.textSecondary }]}
-                >
-                  Note
+                <Text style={[styles.metaLabel, { color: colors.textMuted }]}>
+                  TIME
                 </Text>
-                <Text style={[styles.noteText, { color: colors.text }]}>
-                  {entry.note}
+                <Text style={[styles.metaValue, { color: colors.text }]}>
+                  {formatTime(entry.createdAt)}
                 </Text>
               </View>
-            ) : null}
+              <View style={[styles.metaSeparator, { backgroundColor: colors.borderLight }]} />
+
+              <View style={styles.meta}>
+                <Text style={[styles.metaLabel, { color: colors.textMuted }]}>
+                  STRESS LEVEL
+                </Text>
+                <View style={styles.stressValueRow}>
+                  <Text style={[styles.metaValue, { color: colors.text }]}>
+                    {entry.stressLevel}
+                  </Text>
+                  <Text style={[styles.stressMax, { color: colors.textMuted }]}>
+                    /10
+                  </Text>
+                </View>
+              </View>
+
+              {entry.activities && entry.activities.length > 0 && (
+                <>
+                  <View style={[styles.metaSeparator, { backgroundColor: colors.borderLight }]} />
+                  <View style={styles.meta}>
+                    <Text style={[styles.metaLabel, { color: colors.textMuted }]}>
+                      ACTIVITIES
+                    </Text>
+                    <View style={styles.activityTagsRow}>
+                      {entry.activities.map((act) => (
+                        <View key={act} style={[styles.activityTag, { backgroundColor: colors.primaryLight }]}>
+                          <Text style={[styles.activityTagText, { color: colors.primary }]}>
+                            {act}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                </>
+              )}
+
+              {entry.note ? (
+                <>
+                  <View style={[styles.metaSeparator, { backgroundColor: colors.borderLight }]} />
+                  <View style={styles.meta}>
+                    <Text style={[styles.metaLabel, { color: colors.textMuted }]}>
+                      NOTE
+                    </Text>
+                    <Text style={[styles.noteText, { color: colors.text }]}>
+                      {entry.note}
+                    </Text>
+                  </View>
+                </>
+              ) : null}
+            </View>
           </View>
 
+          {/* Action Buttons */}
           <View style={styles.actions}>
             <TouchableOpacity
               onPress={openEdit}
-              style={[
-                styles.actionBtn,
-                {
-                  backgroundColor: colors.primary,
-                  borderColor: colors.primary,
-                },
-              ]}
+              activeOpacity={0.8}
             >
-              <Pencil color="#FFFFFF" size={20} />
-              <Text style={styles.actionBtnText}>Edit mood</Text>
+              <LinearGradient
+                colors={colors.gradient?.button ?? ['#6C63FF', '#8B5CF6']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.editBtn}
+              >
+                <Pencil color="#FFFFFF" size={18} />
+                <Text style={styles.editBtnText}>Edit mood</Text>
+              </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleDelete}
               disabled={deleting}
+              activeOpacity={0.7}
               style={[
-                styles.actionBtn,
-                {
-                  backgroundColor: "transparent",
-                  borderColor: colors.danger,
-                },
+                styles.deleteBtn,
+                { backgroundColor: colors.dangerLight },
               ]}
             >
-              <Trash2 color={colors.danger} size={20} />
-              <Text style={[styles.actionBtnText, { color: colors.danger }]}>
-                {deleting ? "Deleting…" : "Delete mood"}
+              <Trash2 color={colors.danger} size={18} />
+              <Text style={[styles.deleteBtnText, { color: colors.danger }]}>
+                {deleting ? "Deleting\u2026" : "Delete mood"}
               </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       </SafeAreaView>
 
+      {/* Edit Modal */}
       <Modal
         visible={editModalVisible}
         animationType="slide"
         transparent
         onRequestClose={closeEdit}
       >
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
           <View
             style={[
               styles.modalContent,
               {
                 backgroundColor: colors.card,
-                borderColor: colors.border,
               },
+              isDarkMode
+                ? { borderColor: colors.border, borderWidth: 1 }
+                : {
+                    shadowColor: '#6C63FF',
+                    shadowOffset: { width: 0, height: -4 },
+                    shadowOpacity: 0.15,
+                    shadowRadius: 24,
+                    elevation: 12,
+                  },
             ]}
           >
             <SafeAreaView edges={["bottom"]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                Edit mood
-              </Text>
+              {/* Modal Header */}
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                  Edit mood
+                </Text>
+                <View style={[styles.modalHeaderBar, { backgroundColor: colors.border }]} />
+              </View>
+
               <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
-                <Text style={[styles.editLabel, { color: colors.textSecondary }]}>
-                  Mood
+                {/* Mood Selection */}
+                <Text style={[styles.editLabel, { color: colors.textMuted }]}>
+                  MOOD
                 </Text>
                 <View style={styles.moodRow}>
                   {(Object.keys(MOOD_CONFIG) as MoodType[]).map((m) => {
@@ -324,67 +389,89 @@ export default function MoodDetailScreen() {
                       <TouchableOpacity
                         key={m}
                         onPress={() => setEditMood(m)}
-                        style={[
-                          styles.moodChip,
-                          {
-                            backgroundColor: selected
-                              ? colors.primary
-                              : isDarkMode
-                                ? colors.background
-                                : "#F9FAFB",
-                            borderColor: selected
-                              ? colors.primary
-                              : colors.border,
-                          },
-                        ]}
+                        activeOpacity={0.8}
                       >
-                        <Text style={styles.moodChipEmoji}>{c.emoji}</Text>
-                        <Text
-                          style={[
-                            styles.moodChipLabel,
-                            { color: selected ? "#FFFFFF" : colors.text },
-                          ]}
-                        >
-                          {c.label}
-                        </Text>
+                        {selected ? (
+                          <LinearGradient
+                            colors={colors.gradient?.primary ?? ['#6C63FF', '#8B5CF6']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.moodChip}
+                          >
+                            <Text style={styles.moodChipEmoji}>{c.emoji}</Text>
+                            <Text style={[styles.moodChipLabel, { color: '#FFFFFF' }]}>
+                              {c.label}
+                            </Text>
+                          </LinearGradient>
+                        ) : (
+                          <View
+                            style={[
+                              styles.moodChip,
+                              {
+                                backgroundColor: isDarkMode
+                                  ? colors.background
+                                  : colors.borderLight,
+                              },
+                            ]}
+                          >
+                            <Text style={styles.moodChipEmoji}>{c.emoji}</Text>
+                            <Text
+                              style={[styles.moodChipLabel, { color: colors.text }]}
+                            >
+                              {c.label}
+                            </Text>
+                          </View>
+                        )}
                       </TouchableOpacity>
                     );
                   })}
                 </View>
-                <Text style={[styles.editLabel, { color: colors.textSecondary }]}>
-                  Stress (1–10)
+
+                {/* Stress Selection */}
+                <Text style={[styles.editLabel, { color: colors.textMuted }]}>
+                  STRESS (1\u201310)
                 </Text>
                 <View style={styles.stressRow}>
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                     <TouchableOpacity
                       key={n}
                       onPress={() => setEditStress(n)}
-                      style={[
-                        styles.stressBtn,
-                        {
-                          backgroundColor:
-                            editStress === n ? colors.primary : colors.background,
-                          borderColor:
-                            editStress === n ? colors.primary : colors.border,
-                        },
-                      ]}
+                      activeOpacity={0.8}
                     >
-                      <Text
-                        style={[
-                          styles.stressBtnText,
-                          {
-                            color:
-                              editStress === n ? "#FFFFFF" : colors.textSecondary,
-                          },
-                        ]}
-                      >
-                        {n}
-                      </Text>
+                      {editStress === n ? (
+                        <LinearGradient
+                          colors={colors.gradient?.primary ?? ['#6C63FF', '#8B5CF6']}
+                          style={styles.stressBtn}
+                        >
+                          <Text style={[styles.stressBtnText, { color: '#FFFFFF' }]}>
+                            {n}
+                          </Text>
+                        </LinearGradient>
+                      ) : (
+                        <View
+                          style={[
+                            styles.stressBtn,
+                            {
+                              backgroundColor: isDarkMode
+                                ? colors.background
+                                : colors.borderLight,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[styles.stressBtnText, { color: colors.textSecondary }]}
+                          >
+                            {n}
+                          </Text>
+                        </View>
+                      )}
                     </TouchableOpacity>
                   ))}
                 </View>
-                <Text style={[styles.editLabel, { color: colors.textSecondary }]}>
-                  Activities
+
+                {/* Activities Selection */}
+                <Text style={[styles.editLabel, { color: colors.textMuted }]}>
+                  ACTIVITIES
                 </Text>
                 <View style={styles.activitiesRow}>
                   {ACTIVITIES.map((a) => {
@@ -393,45 +480,55 @@ export default function MoodDetailScreen() {
                       <TouchableOpacity
                         key={a}
                         onPress={() => toggleActivity(a)}
-                        style={[
-                          styles.activityChip,
-                          {
-                            backgroundColor: selected
-                              ? colors.primary
-                              : colors.background,
-                            borderColor: selected
-                              ? colors.primary
-                              : colors.border,
-                          },
-                        ]}
+                        activeOpacity={0.8}
                       >
-                        <Text
-                          style={[
-                            styles.activityChipText,
-                            {
-                              color: selected ? "#FFFFFF" : colors.textSecondary,
-                            },
-                          ]}
-                        >
-                          {a}
-                        </Text>
+                        {selected ? (
+                          <LinearGradient
+                            colors={colors.gradient?.primary ?? ['#6C63FF', '#8B5CF6']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.activityChip}
+                          >
+                            <Text style={[styles.activityChipText, { color: '#FFFFFF' }]}>
+                              {a}
+                            </Text>
+                          </LinearGradient>
+                        ) : (
+                          <View
+                            style={[
+                              styles.activityChip,
+                              {
+                                backgroundColor: isDarkMode
+                                  ? colors.background
+                                  : colors.borderLight,
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[styles.activityChipText, { color: colors.textSecondary }]}
+                            >
+                              {a}
+                            </Text>
+                          </View>
+                        )}
                       </TouchableOpacity>
                     );
                   })}
                 </View>
-                <Text style={[styles.editLabel, { color: colors.textSecondary }]}>
-                  Note
+
+                {/* Note Input */}
+                <Text style={[styles.editLabel, { color: colors.textMuted }]}>
+                  NOTE
                 </Text>
                 <TextInput
                   value={editNote}
                   onChangeText={setEditNote}
                   placeholder="How were you feeling?"
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor={colors.textMuted}
                   style={[
                     styles.noteInput,
                     {
-                      backgroundColor: colors.background,
-                      borderColor: colors.border,
+                      backgroundColor: isDarkMode ? colors.background : colors.borderLight,
                       color: colors.text,
                     },
                   ]}
@@ -439,29 +536,40 @@ export default function MoodDetailScreen() {
                   numberOfLines={3}
                 />
               </ScrollView>
+
+              {/* Modal Action Buttons */}
               <View style={styles.modalActions}>
                 <TouchableOpacity
                   onPress={closeEdit}
                   style={[
-                    styles.modalBtn,
-                    { backgroundColor: colors.background, borderColor: colors.border },
+                    styles.modalCancelBtn,
+                    { backgroundColor: isDarkMode ? colors.background : colors.borderLight },
                   ]}
+                  activeOpacity={0.7}
                 >
-                  <Text style={[styles.modalBtnText, { color: colors.text }]}>
+                  <Text style={[styles.modalCancelBtnText, { color: colors.textSecondary }]}>
                     Cancel
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleSaveEdit}
                   disabled={saving || !editMood}
-                  style={[
-                    styles.modalBtn,
-                    { backgroundColor: colors.primary, borderColor: colors.primary },
-                  ]}
+                  activeOpacity={0.8}
+                  style={styles.modalSaveBtnWrap}
                 >
-                  <Text style={[styles.modalBtnText, { color: "#FFFFFF" }]}>
-                    {saving ? "Saving…" : "Save"}
-                  </Text>
+                  <LinearGradient
+                    colors={colors.gradient?.button ?? ['#6C63FF', '#8B5CF6']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[
+                      styles.modalSaveBtn,
+                      (saving || !editMood) && { opacity: 0.6 },
+                    ]}
+                  >
+                    <Text style={styles.modalSaveBtnText}>
+                      {saving ? "Saving\u2026" : "Save"}
+                    </Text>
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
             </SafeAreaView>
@@ -491,9 +599,10 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     marginTop: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 14,
+    alignItems: "center",
   },
   backBtnText: {
     color: "#FFFFFF",
@@ -505,8 +614,8 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   card: {
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 24,
+    padding: 24,
     marginBottom: 24,
   },
   moodHeader: {
@@ -514,94 +623,178 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
-  emoji: {
-    fontSize: 48,
+  emojiWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 16,
   },
-  moodLabel: {
-    fontSize: 24,
-    fontWeight: "700",
+  emoji: {
+    fontSize: 40,
   },
+  moodHeaderText: {
+    flex: 1,
+  },
+  moodLabel: {
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: -0.3,
+  },
+  moodSub: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginTop: 2,
+  },
+  separator: {
+    height: 1,
+    marginBottom: 20,
+  },
+  metaSection: {},
   meta: {
-    marginBottom: 16,
+    paddingVertical: 4,
   },
   metaLabel: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 4,
+    letterSpacing: 1,
+    marginBottom: 6,
   },
   metaValue: {
     fontSize: 16,
+    fontWeight: "500",
+  },
+  stressValueRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+  },
+  stressMax: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  metaSeparator: {
+    height: 1,
+    marginVertical: 14,
+  },
+  activityTagsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 2,
+  },
+  activityTag: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 50,
+  },
+  activityTagText: {
+    fontSize: 13,
+    fontWeight: "600",
   },
   noteText: {
     fontSize: 16,
-    lineHeight: 22,
+    lineHeight: 24,
   },
   actions: {
     gap: 12,
   },
-  actionBtn: {
+  editBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 2,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 14,
     gap: 8,
   },
-  actionBtnText: {
+  editBtnText: {
     fontSize: 16,
     fontWeight: "600",
     color: "#FFFFFF",
   },
+  deleteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+    gap: 8,
+  },
+  deleteBtnText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
   modalContent: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    borderWidth: 1,
     maxHeight: "85%",
   },
+  modalHeader: {
+    alignItems: "center",
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  modalHeaderBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    marginBottom: 8,
+  },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "700",
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingHorizontal: 24,
+    paddingTop: 8,
     paddingBottom: 12,
+    alignSelf: "flex-start",
   },
   modalScroll: {
     maxHeight: 400,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
   modalActions: {
     flexDirection: "row",
     gap: 12,
-    padding: 20,
+    padding: 24,
     paddingTop: 16,
   },
-  modalBtn: {
+  modalCancelBtn: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
+    paddingVertical: 16,
+    borderRadius: 14,
     alignItems: "center",
   },
-  modalBtnText: {
+  modalCancelBtnText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  modalSaveBtnWrap: {
+    flex: 1,
+  },
+  modalSaveBtn: {
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+  modalSaveBtnText: {
     fontSize: 16,
     fontWeight: "600",
     color: "#FFFFFF",
   },
   editLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: 8,
-    marginTop: 12,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    marginBottom: 10,
+    marginTop: 16,
   },
   moodRow: {
     flexDirection: "row",
@@ -611,10 +804,9 @@ const styles = StyleSheet.create({
   moodChip: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 14,
     gap: 6,
   },
   moodChipEmoji: {
@@ -630,10 +822,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   stressBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -647,19 +838,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   activityChip: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    borderWidth: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 50,
   },
   activityChipText: {
     fontSize: 14,
     fontWeight: "500",
   },
   noteInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 14,
+    padding: 14,
     fontSize: 16,
     minHeight: 80,
     textAlignVertical: "top",

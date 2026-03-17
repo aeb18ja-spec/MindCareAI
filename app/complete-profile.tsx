@@ -2,18 +2,26 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import {
+    ArrowLeft,
+    Calendar,
+    Moon,
+    Ruler,
+    Sparkles,
+    Weight,
+} from "lucide-react-native";
 import { useState } from "react";
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    useWindowDimensions,
+    View,
 } from "react-native";
 
 /** Format as dd-mm-yyyy, auto-insert "-" after dd and mm. Only allows digits; max 8 digits. */
@@ -47,6 +55,12 @@ export default function CompleteProfileScreen() {
   const [sleepingHours, setSleepingHours] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Calculate progress (how many fields are filled)
+  const filledFields = [dob, weight, profileHeight, sleepingHours].filter(
+    (v) => v.trim().length > 0,
+  ).length;
+  const progressPercent = filledFields / 4;
 
   const handleComplete = async () => {
     const dobTrimmed = dob.trim();
@@ -161,63 +175,105 @@ export default function CompleteProfileScreen() {
               {
                 transform: [{ scale: contentScale }],
                 backgroundColor: colors.card,
-                borderColor: colors.border,
-                padding: compact ? 18 : 28,
+                padding: compact ? 22 : 32,
+                shadowColor: isDarkMode ? "#000" : "#6C63FF",
               },
             ]}
           >
-            <View style={styles.backRow}>
-              <TouchableOpacity
-                onPress={() => router.back()}
-                accessibilityLabel="Go back"
-              >
-                <Text style={[styles.backText, { color: colors.primary }]}>
-                  ← Back
+            {/* Back button */}
+            <TouchableOpacity
+              style={styles.backRow}
+              onPress={() => router.back()}
+              accessibilityLabel="Go back"
+              activeOpacity={0.7}
+            >
+              <ArrowLeft size={18} color={colors.primary} strokeWidth={2} />
+              <Text style={[styles.backText, { color: colors.primary }]}>
+                Back
+              </Text>
+            </TouchableOpacity>
+
+            {/* Modern progress bar */}
+            <View style={styles.progressSection}>
+              <View style={styles.progressLabelRow}>
+                <Text
+                  style={[
+                    styles.progressLabel,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Step 3 of 3
                 </Text>
-              </TouchableOpacity>
-            </View>
-            {/* Progress indicator */}
-            <View style={styles.progressRow}>
-              <View
-                style={[styles.progressDot, { backgroundColor: colors.primary }]}
-              />
-              <View
-                style={[styles.progressDot, { backgroundColor: colors.primary }]}
-              />
+                <Text
+                  style={[
+                    styles.progressPercent,
+                    { color: colors.primary },
+                  ]}
+                >
+                  {Math.round(progressPercent * 100)}%
+                </Text>
+              </View>
               <View
                 style={[
-                  styles.progressDot,
-                  styles.progressDotActive,
-                  { backgroundColor: colors.primary },
+                  styles.progressTrack,
+                  { backgroundColor: colors.borderLight },
                 ]}
-              />
+              >
+                <LinearGradient
+                  colors={colors.gradient.button as [string, string]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[
+                    styles.progressFill,
+                    { width: `${Math.max(5, progressPercent * 100)}%` as any },
+                  ]}
+                />
+              </View>
             </View>
 
-            <Text
-              style={[
-                styles.title,
-                { color: colors.text, fontSize: compact ? 22 : 26 },
-              ]}
-            >
-              Complete Your Profile
-            </Text>
-            <Text
-              style={[
-                styles.subtitle,
-                {
-                  color: colors.textSecondary,
-                  marginBottom: compact ? 8 : 16,
-                },
-              ]}
-            >
-              Just a few more details to personalize your experience
-            </Text>
+            {/* Icon + Title */}
+            <View style={styles.headerSection}>
+              <View
+                style={[
+                  styles.iconCircle,
+                  { backgroundColor: colors.primary + "15" },
+                ]}
+              >
+                <Sparkles size={24} color={colors.primary} strokeWidth={2} />
+              </View>
+              <Text
+                style={[
+                  styles.title,
+                  { color: colors.text, fontSize: compact ? 22 : 26 },
+                ]}
+              >
+                Complete Your Profile
+              </Text>
+              <Text
+                style={[
+                  styles.subtitle,
+                  {
+                    color: colors.textSecondary,
+                    marginBottom: compact ? 4 : 8,
+                  },
+                ]}
+              >
+                Just a few more details to personalize your experience
+              </Text>
+            </View>
 
             {/* Date of Birth */}
             <View style={styles.formGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>
-                📅 Date of Birth
-              </Text>
+              <View style={styles.labelRow}>
+                <Calendar
+                  size={15}
+                  color={colors.primary}
+                  strokeWidth={2}
+                />
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                  Date of Birth
+                </Text>
+              </View>
               <TextInput
                 style={[
                   styles.input,
@@ -225,11 +281,11 @@ export default function CompleteProfileScreen() {
                     color: colors.text,
                     borderColor: colors.border,
                     backgroundColor: colors.background,
-                    paddingVertical: compact ? 10 : 12,
+                    paddingVertical: compact ? 12 : 14,
                   },
                 ]}
                 placeholder="DD-MM-YYYY"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={colors.textMuted}
                 value={dob}
                 onChangeText={(text) => setDob(formatDobDisplay(text))}
                 keyboardType="numeric"
@@ -248,9 +304,18 @@ export default function CompleteProfileScreen() {
                   !twoColumn && styles.rowItemStack,
                 ]}
               >
-                <Text style={[styles.label, { color: colors.textSecondary }]}>
-                  ⚖️ Weight (kg)
-                </Text>
+                <View style={styles.labelRow}>
+                  <Weight
+                    size={15}
+                    color={colors.primary}
+                    strokeWidth={2}
+                  />
+                  <Text
+                    style={[styles.label, { color: colors.textSecondary }]}
+                  >
+                    Weight (kg)
+                  </Text>
+                </View>
                 <TextInput
                   style={[
                     styles.input,
@@ -258,11 +323,11 @@ export default function CompleteProfileScreen() {
                       color: colors.text,
                       borderColor: colors.border,
                       backgroundColor: colors.background,
-                      paddingVertical: compact ? 10 : 12,
+                      paddingVertical: compact ? 12 : 14,
                     },
                   ]}
                   placeholder="e.g. 70"
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor={colors.textMuted}
                   value={weight}
                   onChangeText={setWeight}
                   keyboardType="numeric"
@@ -277,9 +342,18 @@ export default function CompleteProfileScreen() {
                   !twoColumn && styles.rowItemStack,
                 ]}
               >
-                <Text style={[styles.label, { color: colors.textSecondary }]}>
-                  📏 Height (cm)
-                </Text>
+                <View style={styles.labelRow}>
+                  <Ruler
+                    size={15}
+                    color={colors.primary}
+                    strokeWidth={2}
+                  />
+                  <Text
+                    style={[styles.label, { color: colors.textSecondary }]}
+                  >
+                    Height (cm)
+                  </Text>
+                </View>
                 <TextInput
                   style={[
                     styles.input,
@@ -287,11 +361,11 @@ export default function CompleteProfileScreen() {
                       color: colors.text,
                       borderColor: colors.border,
                       backgroundColor: colors.background,
-                      paddingVertical: compact ? 10 : 12,
+                      paddingVertical: compact ? 12 : 14,
                     },
                   ]}
                   placeholder="e.g. 170"
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor={colors.textMuted}
                   value={profileHeight}
                   onChangeText={setProfileHeight}
                   keyboardType="numeric"
@@ -302,9 +376,12 @@ export default function CompleteProfileScreen() {
 
             {/* Sleep */}
             <View style={styles.formGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>
-                😴 Average Sleep (hrs/night)
-              </Text>
+              <View style={styles.labelRow}>
+                <Moon size={15} color={colors.primary} strokeWidth={2} />
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                  Average Sleep (hrs/night)
+                </Text>
+              </View>
               <TextInput
                 style={[
                   styles.input,
@@ -312,11 +389,11 @@ export default function CompleteProfileScreen() {
                     color: colors.text,
                     borderColor: colors.border,
                     backgroundColor: colors.background,
-                    paddingVertical: compact ? 10 : 12,
+                    paddingVertical: compact ? 12 : 14,
                   },
                 ]}
                 placeholder="e.g. 7"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={colors.textMuted}
                 value={sleepingHours}
                 onChangeText={setSleepingHours}
                 keyboardType="numeric"
@@ -325,29 +402,41 @@ export default function CompleteProfileScreen() {
             </View>
 
             {!!error && (
-              <Text style={[styles.errorText, { color: colors.danger }]}>
-                {error}
-              </Text>
+              <View
+                style={[
+                  styles.errorContainer,
+                  { backgroundColor: colors.dangerLight },
+                ]}
+              >
+                <Text style={[styles.errorText, { color: colors.danger }]}>
+                  {error}
+                </Text>
+              </View>
             )}
 
             <TouchableOpacity
               style={[
-                styles.button,
-                {
-                  backgroundColor: colors.primary,
-                  marginTop: compact ? 6 : 12,
-                },
+                styles.buttonWrapper,
+                { marginTop: compact ? 4 : 8 },
               ]}
               onPress={handleComplete}
               disabled={loading}
               accessibilityLabel="Complete profile"
               accessibilityRole="button"
+              activeOpacity={0.85}
             >
-              {loading ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <Text style={styles.buttonText}>Get Started 🚀</Text>
-              )}
+              <LinearGradient
+                colors={colors.gradient.button as [string, string]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.button}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.buttonText}>Get Started</Text>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -371,60 +460,98 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  backRow: {
-    alignItems: "flex-start",
-    marginBottom: 8,
-  },
-  backText: {
-    fontSize: 14,
-    fontWeight: "500" as const,
+    paddingVertical: 24,
   },
   card: {
     width: "100%",
     maxWidth: 440,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 28,
-    gap: 10,
+    borderRadius: 28,
+    padding: 32,
+    gap: 14,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 12,
   },
-  progressRow: {
+  backRow: {
     flexDirection: "row",
-    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    marginBottom: 4,
+  },
+  backText: {
+    fontSize: 14,
+    fontWeight: "600" as const,
+  },
+  progressSection: {
+    width: "100%",
     gap: 8,
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  progressDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    opacity: 0.4,
+  progressLabelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  progressDotActive: {
-    opacity: 1,
-    width: 28,
-    borderRadius: 5,
+  progressLabel: {
+    fontSize: 13,
+    fontWeight: "500" as const,
+  },
+  progressPercent: {
+    fontSize: 13,
+    fontWeight: "700" as const,
+  },
+  progressTrack: {
+    width: "100%",
+    height: 8,
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  headerSection: {
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
+  },
+  iconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 4,
   },
   title: {
     fontSize: 26,
     fontWeight: "700" as const,
     textAlign: "center",
+    letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 15,
     textAlign: "center",
-    marginBottom: 16,
+    lineHeight: 22,
   },
   formGroup: {
+    gap: 8,
+  },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
+    marginLeft: 4,
   },
   row: {
     flexDirection: "row",
-    gap: 10,
+    gap: 12,
   },
   rowStack: {
     flexDirection: "column",
-    gap: 8,
+    gap: 14,
   },
   rowItem: {
     flex: 1,
@@ -434,28 +561,42 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: "500" as const,
+    fontWeight: "600" as const,
   },
   input: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    borderWidth: 1.5,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     fontSize: 16,
+  },
+  errorContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    width: "100%",
   },
   errorText: {
     fontSize: 13,
-    marginTop: 4,
+    textAlign: "center",
+    fontWeight: "500" as const,
+  },
+  buttonWrapper: {
+    width: "100%",
+    borderRadius: 14,
+    overflow: "hidden",
   },
   button: {
-    marginTop: 12,
-    borderRadius: 12,
-    paddingVertical: 14,
+    width: "100%",
+    borderRadius: 14,
+    paddingVertical: 16,
     alignItems: "center",
+    justifyContent: "center",
   },
   buttonText: {
     color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "600" as const,
+    fontWeight: "700" as const,
+    letterSpacing: 0.3,
   },
 });

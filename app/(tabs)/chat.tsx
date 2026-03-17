@@ -1,10 +1,10 @@
-import {
-  buildWellnessSystemPrompt,
-  type ChatUserContext,
-} from "@/lib/chatPrompt";
 import ScreenLayout from "@/components/ScreenLayout";
 import { useMood } from "@/contexts/MoodContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import {
+    buildWellnessSystemPrompt,
+    type ChatUserContext,
+} from "@/lib/chatPrompt";
 import { useRorkAgent } from "@rork-ai/toolkit-sdk";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -12,6 +12,7 @@ import {
     Heart,
     MessageCircle,
     Send,
+    Shield,
     Sparkles,
     User,
 } from "lucide-react-native";
@@ -31,12 +32,17 @@ import {
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
+const SUGGESTIONS = [
+  { icon: Heart, label: "I'm feeling anxious today", color: "#FF6B6B" },
+  { icon: Shield, label: "Help me manage stress", color: "#6C63FF" },
+  { icon: MessageCircle, label: "I need someone to talk to", color: "#00D2FF" },
+];
+
 export default function ChatScreen() {
   const [input, setInput] = useState<string>("");
   const flatListRef = useRef<FlatList>(null);
   const { colors, isDarkMode } = useTheme();
   const [bounceAnim] = useState(new Animated.Value(0));
-  const [pulseAnim] = useState(new Animated.Value(1));
 
   const { moodEntries, journalEntries, moodStreak } = useMood();
 
@@ -44,14 +50,18 @@ export default function ChatScreen() {
     const now = Date.now();
     const sevenDaysAgo = now - SEVEN_DAYS_MS;
     const last7 = moodEntries.filter((e) => {
-      const t = e.createdAt ? new Date(e.createdAt).getTime() : new Date(e.date + "T12:00:00").getTime();
+      const t = e.createdAt
+        ? new Date(e.createdAt).getTime()
+        : new Date(e.date + "T12:00:00").getTime();
       return t >= sevenDaysAgo;
     });
     const latestMood = moodEntries[0];
     const stressLevel = latestMood?.stressLevel ?? 5;
     const latestJournal =
       journalEntries.length > 0
-        ? [journalEntries[0].title, journalEntries[0].content].filter(Boolean).join(" — ")
+        ? [journalEntries[0].title, journalEntries[0].content]
+            .filter(Boolean)
+            .join(" — ")
         : "";
     return {
       last7DaysMoods: last7,
@@ -63,7 +73,7 @@ export default function ChatScreen() {
 
   const systemPrompt = useMemo(
     () => buildWellnessSystemPrompt(userContext),
-    [userContext]
+    [userContext],
   );
 
   const { messages, sendMessage } = useRorkAgent({
@@ -86,7 +96,6 @@ export default function ChatScreen() {
     }
   }, [messages]);
 
-  // Bounce animation for new messages
   React.useEffect(() => {
     if (messages.length > 0) {
       Animated.sequence([
@@ -103,27 +112,6 @@ export default function ChatScreen() {
       ]).start();
     }
   }, [messages.length]);
-
-  // Pulse animation for the send button
-  React.useEffect(() => {
-    const pulseAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 1000,
-          useNativeDriver: Platform.OS !== "web",
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: Platform.OS !== "web",
-        }),
-      ]),
-    );
-
-    pulseAnimation.start();
-    return () => pulseAnimation.stop();
-  }, []);
 
   const handleSend = () => {
     if (!input.trim() || isLoading) return;
@@ -153,7 +141,7 @@ export default function ChatScreen() {
               {
                 translateY: bounceAnim.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [0, -10],
+                  outputRange: [0, -6],
                 }),
               },
             ],
@@ -161,19 +149,37 @@ export default function ChatScreen() {
         ]}
       >
         {!isUser && (
-          <View
-            style={[
-              styles.aiIcon,
-              { backgroundColor: isDarkMode ? colors.background : "#F3E8FF" },
-            ]}
+          <LinearGradient
+            colors={colors.gradient.primary as [string, string]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.aiIcon}
           >
-            <Bot color={colors.primary} size={16} />
-          </View>
+            <Bot color="#FFFFFF" size={14} />
+          </LinearGradient>
         )}
         <View
           style={[
             styles.messageBubble,
-            isUser ? styles.userBubble : styles.aiBubble,
+            isUser
+              ? styles.userBubble
+              : [
+                  styles.aiBubble,
+                  {
+                    backgroundColor: isDarkMode ? colors.surface : "#FFFFFF",
+                  },
+                  !isDarkMode && {
+                    shadowColor: "#6C63FF",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.06,
+                    shadowRadius: 8,
+                    elevation: 2,
+                  },
+                  isDarkMode && {
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                  },
+                ],
           ]}
         >
           {textParts.map(
@@ -182,7 +188,9 @@ export default function ChatScreen() {
                 key={index}
                 style={[
                   styles.messageText,
-                  isUser ? styles.userText : styles.aiText,
+                  isUser
+                    ? styles.userText
+                    : { color: isDarkMode ? colors.text : "#1A1D2E" },
                 ]}
               >
                 {part.type === "text" ? part.text : ""}
@@ -191,9 +199,14 @@ export default function ChatScreen() {
           )}
         </View>
         {isUser && (
-          <View style={styles.userIcon}>
-            <User color="#FFFFFF" size={16} />
-          </View>
+          <LinearGradient
+            colors={["#8B5CF6", "#6C63FF"] as [string, string]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.userIcon}
+          >
+            <User color="#FFFFFF" size={14} />
+          </LinearGradient>
         )}
       </Animated.View>
     );
@@ -203,245 +216,382 @@ export default function ChatScreen() {
 
   return (
     <ScreenLayout gradientKey="chat">
+      {/* ── Premium Header ── */}
       <View
-          style={[
-            styles.header,
-            {
-              backgroundColor: colors.card,
-              borderBottomColor: colors.border,
-              borderBottomWidth: 1,
-            },
-          ]}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <View
-              style={[
-                styles.aiIcon,
-                { backgroundColor: isDarkMode ? colors.background : "#F3E8FF" },
-              ]}
-            >
-              <Bot color={colors.primary} size={20} />
-            </View>
-            <View>
-              <Text style={[styles.headerTitle, { color: colors.text }]}>
-                AI Companion
-              </Text>
+        style={[
+          styles.header,
+          {
+            backgroundColor: isDarkMode
+              ? colors.card
+              : "rgba(255,255,255,0.95)",
+          },
+          !isDarkMode && {
+            shadowColor: "#6C63FF",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.06,
+            shadowRadius: 12,
+            elevation: 3,
+          },
+          isDarkMode && {
+            borderBottomColor: colors.border,
+            borderBottomWidth: 1,
+          },
+        ]}
+      >
+        <View style={styles.headerLeft}>
+          <LinearGradient
+            colors={colors.gradient.primary as [string, string]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.headerAvatar}
+          >
+            <Bot color="#FFFFFF" size={22} />
+          </LinearGradient>
+          <View>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
+              AI Companion
+            </Text>
+            <View style={styles.headerStatusRow}>
+              <View style={styles.statusDot} />
               <Text
-                style={[styles.headerSubtitle, { color: colors.textSecondary }]}
+                style={[
+                  styles.headerSubtitle,
+                  { color: colors.textSecondary },
+                ]}
               >
-                Always here to listen
+                Online — here to listen
               </Text>
             </View>
           </View>
         </View>
-
-        <KeyboardAvoidingView
-          style={styles.chatContainer}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+        <View
+          style={[
+            styles.headerBadge,
+            { backgroundColor: colors.primaryLight },
+          ]}
         >
-          {!hasMessages ? (
-            <ScrollView contentContainerStyle={styles.welcomeContainer}>
-              <View
+          <Sparkles color={colors.primary} size={16} />
+        </View>
+      </View>
+
+      <KeyboardAvoidingView
+        style={styles.chatContainer}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        {!hasMessages ? (
+          <ScrollView contentContainerStyle={styles.welcomeContainer}>
+            {/* Welcome Illustration */}
+            <LinearGradient
+              colors={colors.gradient.primary as [string, string]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.welcomeIconOuter}
+            >
+              <View style={styles.welcomeIconInner}>
+                <Sparkles color={colors.primary} size={40} />
+              </View>
+            </LinearGradient>
+
+            <Text style={[styles.welcomeTitle, { color: colors.text }]}>
+              Hello, I'm here for you
+            </Text>
+            <Text
+              style={[
+                styles.welcomeText,
+                { color: colors.textSecondary },
+              ]}
+            >
+              Share what's on your mind, and I'll listen without judgment.
+              Your conversations are private and secure.
+            </Text>
+
+            {/* Suggestion Cards */}
+            <View style={styles.suggestionContainer}>
+              <Text
                 style={[
-                  styles.welcomeIcon,
-                  {
-                    backgroundColor: isDarkMode ? colors.background : "#F3E8FF",
-                  },
+                  styles.suggestionsLabel,
+                  { color: colors.textMuted },
                 ]}
               >
-                <Sparkles color={colors.primary} size={48} />
-              </View>
-              <Text style={[styles.welcomeTitle, { color: colors.text }]}>
-                Hello, I&apos;m here for you
+                TRY SAYING
               </Text>
-              <Text
-                style={[styles.welcomeText, { color: colors.textSecondary }]}
-              >
-                Share what&apos;s on your mind, and I&apos;ll listen without
-                judgment. I&apos;m here to support you through your mental
-                health journey.
-              </Text>
-              <View style={styles.suggestionContainer}>
-                {[
-                  "I'm feeling anxious today",
-                  "Help me manage stress",
-                  "I need someone to talk to",
-                ].map((suggestion) => (
-                  <TouchableOpacity
-                    key={suggestion}
+              {SUGGESTIONS.map((suggestion) => (
+                <TouchableOpacity
+                  key={suggestion.label}
+                  style={[
+                    styles.suggestionChip,
+                    {
+                      backgroundColor: isDarkMode
+                        ? colors.surface
+                        : "#FFFFFF",
+                    },
+                    !isDarkMode && {
+                      shadowColor: "#6C63FF",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.05,
+                      shadowRadius: 8,
+                      elevation: 2,
+                    },
+                    isDarkMode && {
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                    },
+                  ]}
+                  onPress={() => setInput(suggestion.label)}
+                  activeOpacity={0.7}
+                >
+                  <View
                     style={[
-                      styles.suggestionChip,
-                      {
-                        backgroundColor: colors.card,
-                        borderColor: colors.border,
-                        borderWidth: 1,
-                      },
+                      styles.suggestionIconWrap,
+                      { backgroundColor: `${suggestion.color}15` },
                     ]}
-                    onPress={() => {
-                      setInput(suggestion);
-                    }}
                   >
-                    <Text
-                      style={[styles.suggestionText, { color: colors.text }]}
-                    >
-                      {suggestion}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                    <suggestion.icon
+                      color={suggestion.color}
+                      size={18}
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.suggestionText,
+                      { color: colors.text },
+                    ]}
+                  >
+                    {suggestion.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-              {/* Decorative elements */}
-              <View style={styles.decorativeElements}>
-                <Heart
-                  color={isDarkMode ? colors.primary : colors.primary}
-                  size={24}
-                  style={styles.decorativeElement1}
-                />
-                <MessageCircle
-                  color={isDarkMode ? colors.secondary : colors.secondary}
-                  size={20}
-                  style={styles.decorativeElement2}
-                />
-              </View>
-            </ScrollView>
-          ) : (
-            <FlatList
-              ref={flatListRef}
-              data={messages}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.messagesList}
-              renderItem={({ item }) => renderMessage(item)}
-              onContentSizeChange={() =>
-                flatListRef.current?.scrollToEnd({ animated: true })
-              }
-            />
-          )}
+            {/* Privacy note */}
+            <View style={styles.privacyRow}>
+              <Shield color={colors.textMuted} size={14} />
+              <Text
+                style={[styles.privacyText, { color: colors.textMuted }]}
+              >
+                Your conversations are private & encrypted
+              </Text>
+            </View>
+          </ScrollView>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.messagesList}
+            renderItem={({ item }) => renderMessage(item)}
+            onContentSizeChange={() =>
+              flatListRef.current?.scrollToEnd({ animated: true })
+            }
+          />
+        )}
 
+        {/* ── Input Bar ── */}
+        <View
+          style={[
+            styles.inputContainer,
+            {
+              backgroundColor: isDarkMode
+                ? colors.card
+                : "rgba(255,255,255,0.98)",
+            },
+            !isDarkMode && {
+              shadowColor: "#6C63FF",
+              shadowOffset: { width: 0, height: -2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 12,
+              elevation: 4,
+            },
+            isDarkMode && {
+              borderTopColor: colors.border,
+              borderTopWidth: 1,
+            },
+          ]}
+        >
           <View
             style={[
-              styles.inputContainer,
+              styles.inputWrap,
               {
-                backgroundColor: colors.card,
-                borderTopColor: colors.border,
-                borderTopWidth: 1,
+                backgroundColor: isDarkMode
+                  ? colors.background
+                  : colors.borderLight,
+                borderColor: isDarkMode ? colors.border : "transparent",
+                borderWidth: isDarkMode ? 1 : 0,
               },
             ]}
           >
             <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: isDarkMode ? colors.background : "#F9FAFB",
-                  color: colors.text,
-                  borderColor: colors.border,
-                  borderWidth: 1,
-                },
-              ]}
+              style={[styles.input, { color: colors.text }]}
               placeholder="Share your thoughts..."
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={colors.textMuted}
               value={input}
               onChangeText={setInput}
               onSubmitEditing={handleSend}
               multiline
               maxLength={500}
             />
-            <TouchableOpacity
-              style={[
-                styles.sendButton,
-                (!input.trim() || isLoading) && styles.sendButtonDisabled,
-              ]}
-              onPress={handleSend}
-              disabled={!input.trim() || isLoading}
-            >
-              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                <LinearGradient
-                  colors={
-                    colors.gradient.primary as [
-                      import("react-native").ColorValue,
-                      import("react-native").ColorValue,
-                      ...import("react-native").ColorValue[],
-                    ]
-                  }
-                  style={styles.sendGradient}
-                >
-                  <Send color="#FFFFFF" size={20} />
-                </LinearGradient>
-              </Animated.View>
-            </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              (!input.trim() || isLoading) && styles.sendButtonDisabled,
+            ]}
+            onPress={handleSend}
+            disabled={!input.trim() || isLoading}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={colors.gradient.button as [string, string]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.sendGradient}
+            >
+              <Send color="#FFFFFF" size={18} />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
+  /* ── Header ── */
   header: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "700" as const,
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
-  headerSubtitle: {
-    fontSize: 14,
+  headerAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "700" as const,
+    letterSpacing: -0.2,
+  },
+  headerStatusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     marginTop: 2,
   },
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#00C48C",
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    fontWeight: "500" as const,
+  },
+  headerBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  /* ── Chat Container ── */
   chatContainer: {
     flex: 1,
   },
+
+  /* ── Welcome ── */
   welcomeContainer: {
-    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 40,
-    paddingTop: 40,
+    paddingHorizontal: 32,
+    paddingTop: 48,
+    paddingBottom: 32,
   },
-  welcomeIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  welcomeIconOuter: {
+    width: 96,
+    height: 96,
+    borderRadius: 36,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 24,
+    marginBottom: 28,
+  },
+  welcomeIconInner: {
+    width: 72,
+    height: 72,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   welcomeTitle: {
-    fontSize: 28,
-    fontWeight: "700" as const,
-    marginBottom: 12,
+    fontSize: 26,
+    fontWeight: "800" as const,
+    marginBottom: 10,
     textAlign: "center",
+    letterSpacing: -0.5,
   },
   welcomeText: {
-    fontSize: 16,
+    fontSize: 15,
     textAlign: "center",
-    lineHeight: 24,
-    marginBottom: 32,
+    lineHeight: 23,
+    marginBottom: 36,
   },
   suggestionContainer: {
     width: "100%",
-    gap: 12,
+    gap: 10,
+  },
+  suggestionsLabel: {
+    fontSize: 11,
+    fontWeight: "700" as const,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    marginBottom: 4,
+    paddingLeft: 4,
   },
   suggestionChip: {
-    borderRadius: 16,
+    borderRadius: 18,
     paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderWidth: 1,
+    paddingHorizontal: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  suggestionIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
   suggestionText: {
     fontSize: 15,
-    textAlign: "center",
+    fontWeight: "600" as const,
+    flex: 1,
+  },
+  privacyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 28,
+  },
+  privacyText: {
+    fontSize: 12,
     fontWeight: "500" as const,
   },
+
+  /* ── Messages ── */
   messagesList: {
     padding: 20,
     paddingBottom: 10,
@@ -449,6 +599,7 @@ const styles = StyleSheet.create({
   messageContainer: {
     marginBottom: 16,
     flexDirection: "row",
+    alignItems: "flex-end",
   },
   userMessageContainer: {
     justifyContent: "flex-end",
@@ -457,94 +608,77 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   aiIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 8,
-    marginTop: 4,
+    marginBottom: 2,
   },
   userIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#7C3AED",
+    width: 30,
+    height: 30,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 8,
-    marginTop: 4,
+    marginBottom: 2,
   },
   messageBubble: {
-    maxWidth: "80%",
-    borderRadius: 20,
-    padding: 16,
+    maxWidth: "75%",
+    borderRadius: 22,
+    padding: 14,
+    paddingHorizontal: 18,
   },
   userBubble: {
-    backgroundColor: "#7C3AED",
-    borderBottomRightRadius: 4,
+    backgroundColor: "#6C63FF",
+    borderBottomRightRadius: 6,
   },
   aiBubble: {
-    backgroundColor: "#FFFFFF",
-    borderBottomLeftRadius: 4,
-    boxShadow: "0px 1px 4px rgba(0, 0, 0, 0.05)",
-    elevation: 2,
+    borderBottomLeftRadius: 6,
   },
   messageText: {
-    fontSize: 16,
+    fontSize: 15,
     lineHeight: 22,
   },
   userText: {
     color: "#FFFFFF",
   },
-  aiText: {
-    color: "#1F2937",
-  },
+
+  /* ── Input ── */
   inputContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderTopWidth: 1,
-    gap: 12,
+    gap: 10,
+  },
+  inputWrap: {
+    flex: 1,
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 4,
   },
   input: {
-    flex: 1,
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    fontSize: 16,
+    fontSize: 15,
     maxHeight: 100,
-    borderWidth: 1,
+    minHeight: 40,
+    paddingVertical: 8,
   },
   sendButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 46,
+    height: 46,
+    borderRadius: 18,
     overflow: "hidden",
   },
   sendButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
   sendGradient: {
     width: "100%",
     height: "100%",
     alignItems: "center",
     justifyContent: "center",
-  },
-  decorativeElements: {
-    position: "relative",
-    height: 100,
-    marginTop: 20,
-  },
-  decorativeElement1: {
-    position: "absolute",
-    top: 10,
-    left: 20,
-  },
-  decorativeElement2: {
-    position: "absolute",
-    top: 30,
-    right: 40,
   },
 });

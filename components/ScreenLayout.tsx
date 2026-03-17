@@ -13,7 +13,7 @@ export type GradientKey =
   | "primary"
   | "secondary";
 
-const DEFAULT_GRADIENT: [string, string, ...string[]] = ["#7C3AED", "#A78BFA"];
+const DEFAULT_GRADIENT: [string, string, ...string[]] = ["#6C63FF", "#8B5CF6"];
 
 type ScreenLayoutProps = {
   /** Theme gradient key. Default "home". */

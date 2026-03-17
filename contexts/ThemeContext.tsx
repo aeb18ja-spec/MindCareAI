@@ -1,72 +1,117 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, ReactNode, useContext, useState } from 'react';
 
 interface ThemeContextType {
   isDarkMode: boolean;
   toggleTheme: () => void;
   colors: {
     primary: string;
+    primaryLight: string;
     secondary: string;
+    secondaryLight: string;
+    accent: string;
     background: string;
+    surface: string;
     card: string;
+    cardElevated: string;
     text: string;
     textSecondary: string;
+    textMuted: string;
     border: string;
+    borderLight: string;
     notification: string;
     success: string;
+    successLight: string;
     warning: string;
+    warningLight: string;
     danger: string;
+    dangerLight: string;
+    overlay: string;
+    shimmer: string;
     gradient: {
       primary: string[];
       secondary: string[];
+      accent: string[];
       home: string[];
       journal: string[];
       chat: string[];
       insights: string[];
+      card: string[];
+      button: string[];
     };
   };
 }
 
 const lightColors = {
-  primary: '#7C3AED',
-  secondary: '#F97316',
-  background: '#F9FAFB',
+  primary: '#6C63FF',
+  primaryLight: '#EEE8FF',
+  secondary: '#FF6B6B',
+  secondaryLight: '#FFE8E8',
+  accent: '#00D2FF',
+  background: '#F8F9FE',
+  surface: '#FFFFFF',
   card: '#FFFFFF',
-  text: '#1F2937',
-  textSecondary: '#6B7280',
-  border: '#E5E7EB',
-  notification: '#EF4444',
-  success: '#10B981',
-  warning: '#F59E0B',
-  danger: '#EF4444',
+  cardElevated: '#FFFFFF',
+  text: '#1A1D2E',
+  textSecondary: '#6E7191',
+  textMuted: '#A0A3BD',
+  border: '#EFF0F6',
+  borderLight: '#F7F7FC',
+  notification: '#FF6B6B',
+  success: '#00C48C',
+  successLight: '#E6FAF2',
+  warning: '#FFB020',
+  warningLight: '#FFF5E0',
+  danger: '#FF6B6B',
+  dangerLight: '#FFE8E8',
+  overlay: 'rgba(26, 29, 46, 0.5)',
+  shimmer: 'rgba(108, 99, 255, 0.05)',
   gradient: {
-    primary: ['#7C3AED', '#5B21B6'],
-    secondary: ['#F97316', '#EA580C'],
-    home: ['#F0F4FF', '#FFFFFF'],
-    journal: ['#FFF7ED', '#FFFFFF'],
-    chat: ['#F3E8FF', '#FFFFFF'],
-    insights: ['#EDE9FE', '#FFFFFF'],
+    primary: ['#6C63FF', '#8B5CF6'],
+    secondary: ['#FF6B6B', '#FF8E8E'],
+    accent: ['#00D2FF', '#7B68EE'],
+    home: ['#F0EDFF', '#F8F9FE'],
+    journal: ['#FFF0F0', '#FFF8F8'],
+    chat: ['#E8F4FF', '#F0EDFF'],
+    insights: ['#E8FFF0', '#F0EDFF'],
+    card: ['#FFFFFF', '#F8F9FE'],
+    button: ['#6C63FF', '#8B5CF6'],
   },
 };
 
 const darkColors = {
-  primary: '#A78BFA',
-  secondary: '#FDBA74',
-  background: '#111827',
-  card: '#1F2937',
-  text: '#F9FAFB',
-  textSecondary: '#D1D5DB',
-  border: '#374151',
-  notification: '#FECACA',
-  success: '#6EE7B7',
-  warning: '#FDE68A',
-  danger: '#FECACA',
+  primary: '#8B7DFF',
+  primaryLight: '#2A2640',
+  secondary: '#FF8E8E',
+  secondaryLight: '#3D2020',
+  accent: '#5DDFFF',
+  background: '#0F1123',
+  surface: '#1A1D35',
+  card: '#1E2140',
+  cardElevated: '#252850',
+  text: '#F0F0FF',
+  textSecondary: '#A0A3C4',
+  textMuted: '#6E7191',
+  border: '#2A2D4A',
+  borderLight: '#1E2140',
+  notification: '#FF8E8E',
+  success: '#5DFFC3',
+  successLight: '#1A3D2E',
+  warning: '#FFD166',
+  warningLight: '#3D3020',
+  danger: '#FF8E8E',
+  dangerLight: '#3D2020',
+  overlay: 'rgba(0, 0, 0, 0.7)',
+  shimmer: 'rgba(139, 125, 255, 0.08)',
   gradient: {
-    primary: ['#5B21B6', '#7C3AED'],
-    secondary: ['#EA580C', '#F97316'],
-    home: ['#1E1B4B', '#1F2937'],
-    journal: ['#4C1D95', '#1F2937'],
-    chat: ['#5B21B6', '#1F2937'],
-    insights: ['#7C3AED', '#1F2937'],
+    primary: ['#6C63FF', '#8B5CF6'],
+    secondary: ['#FF6B6B', '#FF8E8E'],
+    accent: ['#00D2FF', '#7B68EE'],
+    home: ['#0F1123', '#1A1D35'],
+    journal: ['#1A1025', '#1A1D35'],
+    chat: ['#101530', '#1A1D35'],
+    insights: ['#0F1A23', '#1A1D35'],
+    card: ['#1E2140', '#252850'],
+    button: ['#6C63FF', '#8B5CF6'],
   },
 };
 

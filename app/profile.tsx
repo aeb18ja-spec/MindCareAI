@@ -1,10 +1,28 @@
 import ScreenLayout from "@/components/ScreenLayout";
 import { getAgeFromDob, useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
+import {
+  Calendar,
+  ChevronLeft,
+  Edit3,
+  Heart,
+  Mail,
+  Moon,
+  Ruler,
+  Shield,
+  User,
+  Weight,
+} from "lucide-react-native";
 import React from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function ProfileScreen() {
   const { currentUser } = useAuth();
@@ -13,9 +31,14 @@ export default function ProfileScreen() {
 
   if (!currentUser) {
     return (
-      <ScreenLayout gradientKey={isDarkMode ? "insights" : "primary"} showHeader={false}>
+      <ScreenLayout
+        gradientKey={isDarkMode ? "insights" : "primary"}
+        showHeader={false}
+      >
         <View style={styles.centered}>
-          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+          <Text
+            style={[styles.loadingText, { color: colors.textSecondary }]}
+          >
             Loading profile...
           </Text>
         </View>
@@ -24,179 +47,374 @@ export default function ProfileScreen() {
   }
 
   const age = getAgeFromDob(currentUser.dob);
-  const initial = currentUser.name?.trim()?.charAt(0)?.toUpperCase() ?? "?";
+  const initial =
+    currentUser.name?.trim()?.charAt(0)?.toUpperCase() ?? "?";
   const about =
     currentUser.sleepingHours && currentUser.sleepingHours < 7
       ? "Working on improving my sleep and managing stress better."
       : "On a journey to understand my moods and build healthy habits.";
 
+  const cardStyle = [
+    styles.card,
+    {
+      backgroundColor: colors.card,
+      ...(isDarkMode
+        ? {
+            borderColor: colors.border,
+            borderWidth: 1,
+          }
+        : {
+            shadowColor: "#6C63FF",
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.08,
+            shadowRadius: 20,
+            elevation: 4,
+          }),
+    },
+  ];
+
   return (
-    <ScreenLayout gradientKey={isDarkMode ? "insights" : "primary"} showHeader={false}>
-      <ScrollView contentContainerStyle={styles.content}>
+    <ScreenLayout
+      gradientKey={isDarkMode ? "insights" : "primary"}
+      showHeader={false}
+    >
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Navigation Bar ── */}
         <View style={styles.navBar}>
           <TouchableOpacity
             onPress={() => router.back()}
-            style={styles.backButton}
+            style={[
+              styles.backButton,
+              {
+                backgroundColor: isDarkMode
+                  ? colors.surface
+                  : "rgba(255,255,255,0.9)",
+              },
+              !isDarkMode && {
+                shadowColor: "#6C63FF",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.06,
+                shadowRadius: 8,
+                elevation: 2,
+              },
+              isDarkMode && { borderColor: colors.border, borderWidth: 1 },
+            ]}
+            activeOpacity={0.7}
             accessibilityLabel="Go back"
           >
-            <ChevronLeft color={colors.text} size={24} />
+            <ChevronLeft color={colors.text} size={22} />
           </TouchableOpacity>
-          <Text style={[styles.navTitle, { color: colors.text }]}>Profile</Text>
-          <View style={styles.backButton} />
-        </View>
-
-        <View style={styles.header}>
-          <View
-            style={[
-              styles.avatar,
-              {
-                backgroundColor: isDarkMode ? "#4C1D95" : "#EDE9FE",
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <Text style={[styles.avatarInitial, { color: colors.primary }]}>
-              {initial}
-            </Text>
-          </View>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
+          <Text style={[styles.navTitle, { color: colors.text }]}>
             Profile
           </Text>
-          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-            Connected to your Supabase profile
-          </Text>
-          <Text style={[styles.aboutText, { color: colors.textSecondary }]}>
-            {about}
-          </Text>
+          <View style={styles.navSpacer} />
         </View>
 
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              borderWidth: 1,
-            },
-          ]}
-        >
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            Personal Info
+        {/* ── Hero Section ── */}
+        <View style={styles.heroSection}>
+          {/* Avatar with gradient ring */}
+          <View style={styles.avatarOuter}>
+            <LinearGradient
+              colors={colors.gradient.primary as [string, string]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.avatarRing}
+            >
+              <View
+                style={[
+                  styles.avatarInnerRing,
+                  { backgroundColor: colors.background },
+                ]}
+              >
+                <LinearGradient
+                  colors={colors.gradient.primary as [string, string]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.avatar}
+                >
+                  <Text style={styles.avatarInitial}>{initial}</Text>
+                </LinearGradient>
+              </View>
+            </LinearGradient>
+            {/* Edit badge */}
+            <View
+              style={[
+                styles.editBadge,
+                {
+                  backgroundColor: isDarkMode ? colors.card : "#FFFFFF",
+                  borderColor: isDarkMode ? colors.border : colors.primary,
+                },
+              ]}
+            >
+              <Edit3 color={colors.primary} size={12} />
+            </View>
+          </View>
+
+          <Text style={[styles.heroName, { color: colors.text }]}>
+            {currentUser.name || "User"}
           </Text>
-          <Row label="Name" value={currentUser.name} colors={colors} />
-          <Row label="Email" value={currentUser.email} colors={colors} />
-          <Row
-            label="Date of birth"
+          <Text style={[styles.emailText, { color: colors.textSecondary }]}>
+            {currentUser.email}
+          </Text>
+
+          {/* About pill */}
+          <View
+            style={[
+              styles.aboutPill,
+              {
+                backgroundColor: isDarkMode
+                  ? colors.surface
+                  : colors.primaryLight,
+              },
+              isDarkMode && { borderColor: colors.border, borderWidth: 1 },
+            ]}
+          >
+            <Heart
+              color={colors.primary}
+              size={14}
+              style={{ marginRight: 8 }}
+            />
+            <Text
+              style={[styles.aboutText, { color: colors.textSecondary }]}
+            >
+              {about}
+            </Text>
+          </View>
+        </View>
+
+        {/* ── Personal Information Card ── */}
+        <View style={cardStyle}>
+          <View style={styles.sectionHeader}>
+            <View
+              style={[
+                styles.sectionIconWrap,
+                { backgroundColor: colors.primaryLight },
+              ]}
+            >
+              <User color={colors.primary} size={16} />
+            </View>
+            <Text style={[styles.sectionTitle, { color: colors.primary }]}>
+              PERSONAL INFORMATION
+            </Text>
+          </View>
+          <InfoRow
+            icon={User}
+            iconColor={colors.primary}
+            iconBg={colors.primaryLight}
+            label="Name"
+            value={currentUser.name}
+            colors={colors}
+          />
+          <InfoRow
+            icon={Mail}
+            iconColor="#00D2FF"
+            iconBg={isDarkMode ? "rgba(0,210,255,0.15)" : "rgba(0,210,255,0.1)"}
+            label="Email"
+            value={currentUser.email}
+            colors={colors}
+          />
+          <InfoRow
+            icon={Calendar}
+            iconColor="#FFB020"
+            iconBg={colors.warningLight}
+            label="Date of Birth"
             value={currentUser.dob}
             colors={colors}
           />
-          <Row
+          <InfoRow
+            icon={Heart}
+            iconColor="#FF6B6B"
+            iconBg={colors.dangerLight}
             label="Age"
-            value={age > 0 ? `${age} years` : "—"}
+            value={age > 0 ? `${age} years` : "\u2014"}
             colors={colors}
+            isLast
           />
         </View>
 
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              borderWidth: 1,
-            },
-          ]}
-        >
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            Health Snapshot
-          </Text>
-          <Row
+        {/* ── Health Snapshot Card ── */}
+        <View style={cardStyle}>
+          <View style={styles.sectionHeader}>
+            <View
+              style={[
+                styles.sectionIconWrap,
+                { backgroundColor: colors.successLight },
+              ]}
+            >
+              <Heart color={colors.success} size={16} />
+            </View>
+            <Text style={[styles.sectionTitle, { color: colors.primary }]}>
+              HEALTH SNAPSHOT
+            </Text>
+          </View>
+          <InfoRow
+            icon={Weight}
+            iconColor="#FF6B6B"
+            iconBg={colors.dangerLight}
             label="Weight"
             value={
-              currentUser.weight ? `${currentUser.weight.toFixed(1)} kg` : "—"
+              currentUser.weight
+                ? `${currentUser.weight.toFixed(1)} kg`
+                : "\u2014"
             }
             colors={colors}
           />
-          <Row
+          <InfoRow
+            icon={Ruler}
+            iconColor="#6C63FF"
+            iconBg={colors.primaryLight}
             label="Height"
             value={
-              currentUser.height ? `${currentUser.height.toFixed(1)} cm` : "—"
+              currentUser.height
+                ? `${currentUser.height.toFixed(1)} cm`
+                : "\u2014"
             }
             colors={colors}
           />
-          <Row
+          <InfoRow
+            icon={Moon}
+            iconColor="#8B5CF6"
+            iconBg={isDarkMode ? "rgba(139,92,246,0.15)" : "rgba(139,92,246,0.1)"}
             label="Sleep"
             value={
               currentUser.sleepingHours
                 ? `${currentUser.sleepingHours.toFixed(1)} hrs/night`
-                : "—"
+                : "\u2014"
             }
             colors={colors}
+            isLast
           />
         </View>
 
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              borderWidth: 1,
-            },
-          ]}
-        >
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            Account
-          </Text>
-          <Row
-            label="Member since"
-            value={new Date(currentUser.createdAt).toLocaleDateString()}
+        {/* ── Account Details Card ── */}
+        <View style={cardStyle}>
+          <View style={styles.sectionHeader}>
+            <View
+              style={[
+                styles.sectionIconWrap,
+                {
+                  backgroundColor: isDarkMode
+                    ? "rgba(0,210,255,0.15)"
+                    : "rgba(0,210,255,0.1)",
+                },
+              ]}
+            >
+              <Shield color="#00D2FF" size={16} />
+            </View>
+            <Text style={[styles.sectionTitle, { color: colors.primary }]}>
+              ACCOUNT DETAILS
+            </Text>
+          </View>
+          <InfoRow
+            icon={Calendar}
+            iconColor={colors.success}
+            iconBg={colors.successLight}
+            label="Member Since"
+            value={new Date(currentUser.createdAt).toLocaleDateString(
+              "en-US",
+              { year: "numeric", month: "long", day: "numeric" },
+            )}
             colors={colors}
           />
-          <Row label="User ID" value={currentUser.id} colors={colors} />
+          <InfoRow
+            icon={Shield}
+            iconColor={colors.textMuted}
+            iconBg={isDarkMode ? colors.surface : colors.borderLight}
+            label="User ID"
+            value={currentUser.id.slice(0, 8) + "..."}
+            colors={colors}
+            isLast
+          />
         </View>
       </ScrollView>
     </ScreenLayout>
   );
 }
 
-type RowProps = {
+/* ── Info Row Component ── */
+type InfoRowProps = {
+  icon: typeof User;
+  iconColor: string;
+  iconBg: string;
   label: string;
   value: string;
-  colors: { text: string; textSecondary: string; border: string };
+  colors: {
+    text: string;
+    textSecondary: string;
+    textMuted: string;
+    border: string;
+    borderLight: string;
+  };
+  isLast?: boolean;
 };
 
-function Row({ label, value, colors }: RowProps) {
+function InfoRow({
+  icon: Icon,
+  iconColor,
+  iconBg,
+  label,
+  value,
+  colors,
+  isLast,
+}: InfoRowProps) {
   return (
-    <View style={styles.row}>
-      <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>
-        {label}
-      </Text>
-      <Text style={[styles.rowValue, { color: colors.text }]}>{value}</Text>
+    <View
+      style={[
+        styles.row,
+        !isLast && {
+          borderBottomWidth: 1,
+          borderBottomColor: colors.borderLight,
+        },
+      ]}
+    >
+      <View style={[styles.rowIcon, { backgroundColor: iconBg }]}>
+        <Icon color={iconColor} size={14} />
+      </View>
+      <View style={styles.rowTextWrap}>
+        <Text style={[styles.rowLabel, { color: colors.textMuted }]}>
+          {label}
+        </Text>
+        <Text
+          style={[styles.rowValue, { color: colors.text }]}
+          numberOfLines={1}
+        >
+          {value}
+        </Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   content: {
-    padding: 20,
-    paddingBottom: 32,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 48,
   },
   navBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: 24,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
+  },
+  navSpacer: {
+    width: 44,
+    height: 44,
   },
   navTitle: {
     fontSize: 18,
     fontWeight: "700" as const,
+    letterSpacing: -0.2,
   },
   centered: {
     flex: 1,
@@ -206,61 +424,133 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
   },
-  header: {
-    marginBottom: 24,
+
+  /* ── Hero ── */
+  heroSection: {
+    alignItems: "center",
+    marginBottom: 32,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: "700" as const,
+  avatarOuter: {
+    marginBottom: 20,
+    position: "relative",
   },
-  headerSubtitle: {
-    marginTop: 4,
-    fontSize: 14,
-  },
-  aboutText: {
-    marginTop: 8,
-    fontSize: 14,
-  },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+  avatarRing: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
-    borderWidth: 1,
+  },
+  avatarInnerRing: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatar: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    alignItems: "center",
+    justifyContent: "center",
   },
   avatarInitial: {
-    fontSize: 32,
-    fontWeight: "700" as const,
+    fontSize: 44,
+    fontWeight: "800" as const,
+    color: "#FFFFFF",
   },
-  card: {
-    borderRadius: 16,
-    padding: 16,
+  editBadge: {
+    position: "absolute",
+    bottom: 4,
+    right: 4,
+    width: 30,
+    height: 30,
+    borderRadius: 12,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroName: {
+    fontSize: 28,
+    fontWeight: "800" as const,
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  emailText: {
+    fontSize: 15,
+    fontWeight: "400" as const,
     marginBottom: 16,
-    boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.05)",
-    elevation: 2,
+  },
+  aboutPill: {
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 18,
+    marginHorizontal: 8,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  aboutText: {
+    fontSize: 14,
+    lineHeight: 20,
+    flex: 1,
+    fontWeight: "400" as const,
+  },
+
+  /* ── Cards ── */
+  card: {
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 8,
+    marginBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 14,
+  },
+  sectionIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: "600" as const,
-    marginBottom: 12,
+    fontSize: 12,
+    fontWeight: "700" as const,
+    letterSpacing: 1.5,
     textTransform: "uppercase",
   },
+
+  /* ── Rows ── */
   row: {
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.06)",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 15,
+    gap: 14,
+  },
+  rowIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rowTextWrap: {
+    flex: 1,
   },
   rowLabel: {
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: "600" as const,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
+    marginBottom: 3,
   },
   rowValue: {
-    marginTop: 2,
-    fontSize: 15,
-    fontWeight: "500" as const,
+    fontSize: 16,
+    fontWeight: "600" as const,
   },
 });
-
