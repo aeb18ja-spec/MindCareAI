@@ -114,7 +114,7 @@ app.post("/verify-otp", (req, res) => {
       return res.status(400).json({ error: "OTP has expired. Please request a new one." });
     }
 
-    if (stored.otp !== otp.toString().trim()) {
+    if (stored.otp.toString().trim() !== otp.toString().trim()) {
       return res.status(400).json({ error: "Invalid OTP. Please try again." });
     }
 
