@@ -2,6 +2,13 @@ import ScreenLayout from "@/components/ScreenLayout";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import {
+  DAILY_REMINDER_TIME_LABEL,
+  disableDailyReminder,
+  enableDailyReminder,
+  getDailyReminderEnabled,
+  isDailyReminderSupported,
+} from "@/lib/reminders";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
@@ -14,8 +21,9 @@ import {
   Shield,
   User,
 } from "lucide-react-native";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -27,6 +35,71 @@ export default function SettingsScreen() {
   const { colors, isDarkMode } = useTheme();
   const { logout } = useAuth();
   const router = useRouter();
+  const [dailyReminderEnabled, setDailyReminderEnabled] = useState(false);
+  const [reminderLoading, setReminderLoading] = useState(true);
+  const [reminderToggling, setReminderToggling] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadReminderState = async () => {
+      try {
+        const enabled = await getDailyReminderEnabled();
+        if (!cancelled) {
+          setDailyReminderEnabled(enabled);
+        }
+      } finally {
+        if (!cancelled) {
+          setReminderLoading(false);
+        }
+      }
+    };
+
+    void loadReminderState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleReminderToggle = async () => {
+    if (reminderToggling || reminderLoading) return;
+
+    if (!isDailyReminderSupported()) {
+      Alert.alert(
+        "Not supported",
+        "Daily reminders are not available on web.",
+      );
+      return;
+    }
+
+    setReminderToggling(true);
+    try {
+      if (dailyReminderEnabled) {
+        await disableDailyReminder();
+        setDailyReminderEnabled(false);
+        return;
+      }
+
+      const enabled = await enableDailyReminder();
+      if (!enabled) {
+        Alert.alert(
+          "Could not enable reminder",
+          "Please allow notifications and try again.",
+        );
+        return;
+      }
+
+      setDailyReminderEnabled(true);
+    } catch (e) {
+      Alert.alert(
+        "Reminder error",
+        e instanceof Error ? e.message : "Failed to update reminder.",
+      );
+    } finally {
+      setReminderToggling(false);
+    }
+  };
 
   const cardStyle = [
     styles.section,
@@ -168,7 +241,16 @@ export default function SettingsScreen() {
             NOTIFICATIONS
           </Text>
 
-          <View style={[styles.optionRow, styles.optionRowLast]}>
+          <TouchableOpacity
+            style={[
+              styles.optionRow,
+              styles.optionRowLast,
+              (reminderLoading || reminderToggling) && styles.optionRowDisabled,
+            ]}
+            onPress={handleReminderToggle}
+            activeOpacity={0.7}
+            disabled={reminderLoading || reminderToggling}
+          >
             <View
               style={[
                 styles.optionIcon,
@@ -187,18 +269,40 @@ export default function SettingsScreen() {
                   { color: colors.textSecondary },
                 ]}
               >
-                Get notified to check in daily
+                {dailyReminderEnabled
+                  ? `Reminder set for ${DAILY_REMINDER_TIME_LABEL}`
+                  : "Get notified to check in daily"}
               </Text>
             </View>
-            <LinearGradient
-              colors={colors.gradient.button as [string, string]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.reminderBadge}
-            >
-              <Text style={styles.reminderBadgeText}>ON · 8:00 PM</Text>
-            </LinearGradient>
-          </View>
+            {dailyReminderEnabled ? (
+              <LinearGradient
+                colors={colors.gradient.button as [string, string]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.reminderBadge}
+              >
+                <Text style={styles.reminderBadgeText}>
+                  {reminderToggling ? "..." : `ON · ${DAILY_REMINDER_TIME_LABEL}`}
+                </Text>
+              </LinearGradient>
+            ) : (
+              <View
+                style={[
+                  styles.reminderBadgeOff,
+                  {
+                    backgroundColor: isDarkMode ? colors.surface : colors.borderLight,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <Text
+                  style={[styles.reminderBadgeTextOff, { color: colors.textMuted }]}
+                >
+                  {reminderToggling ? "..." : "OFF"}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Support & Information Section */}
@@ -328,8 +432,17 @@ export default function SettingsScreen() {
               { backgroundColor: colors.dangerLight },
             ]}
             onPress={async () => {
-              await logout();
-              router.replace("/login");
+              try {
+                await logout();
+                router.replace("/login");
+              } catch (err) {
+                Alert.alert(
+                  "Logout failed",
+                  err instanceof Error
+                    ? err.message
+                    : "Unable to logout right now. Please try again.",
+                );
+              }
             }}
             activeOpacity={0.7}
           >
@@ -388,6 +501,9 @@ const styles = StyleSheet.create({
   optionRowLast: {
     borderBottomWidth: 0,
   },
+  optionRowDisabled: {
+    opacity: 0.7,
+  },
   optionIcon: {
     width: 40,
     height: 40,
@@ -414,11 +530,22 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
   },
+  reminderBadgeOff: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
   reminderBadgeText: {
     fontSize: 12,
     fontWeight: "700" as const,
     letterSpacing: 0.3,
     color: "#FFFFFF",
+  },
+  reminderBadgeTextOff: {
+    fontSize: 12,
+    fontWeight: "700" as const,
+    letterSpacing: 0.3,
   },
   safetyNote: {
     marginHorizontal: 24,

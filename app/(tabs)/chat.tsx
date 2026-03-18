@@ -1,4 +1,5 @@
 import ScreenLayout from "@/components/ScreenLayout";
+import { useAuth } from "@/contexts/AuthContext";
 import { useMood } from "@/contexts/MoodContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
@@ -46,6 +47,7 @@ export default function ChatScreen({ onClose }: { onClose?: () => void } = {}) {
   const [bounceAnim] = useState(new Animated.Value(0));
 
   const { moodEntries, journalEntries, moodStreak } = useMood();
+  const { currentUser } = useAuth();
 
   const userContext = useMemo<ChatUserContext>(() => {
     const now = Date.now();
@@ -69,8 +71,10 @@ export default function ChatScreen({ onClose }: { onClose?: () => void } = {}) {
       stressLevel,
       latestJournal,
       moodStreak,
+      bmi: currentUser?.bmi ?? null,
+      bmiCategory: currentUser?.bmiCategory ?? null,
     };
-  }, [moodEntries, journalEntries, moodStreak]);
+  }, [moodEntries, journalEntries, moodStreak, currentUser]);
 
   const systemPrompt = useMemo(
     () => buildWellnessSystemPrompt(userContext),

@@ -2,12 +2,12 @@ import MoodCalendarView from "@/components/MoodCalendarView";
 import ScreenLayout from "@/components/ScreenLayout";
 import { useMood } from "@/contexts/MoodContext";
 import { useTheme } from "@/contexts/ThemeContext";
-import type { MoodEntry } from "@/types/mood";
+import type { MoodEntry, SleepLog, WeightLog } from "@/types/mood";
 import { MOOD_CONFIG } from "@/types/mood";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Calendar as CalendarIcon, History, LayoutGrid, List } from "lucide-react-native";
+import { Calendar as CalendarIcon, History, LayoutGrid, List, Moon, Scale } from "lucide-react-native";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Animated,
@@ -67,10 +67,10 @@ function notePreview(note: string | undefined, maxLen: number): string {
   return t.length <= maxLen ? t : t.slice(0, maxLen) + "\u2026";
 }
 
-function filterEntriesByRange(
-  entries: MoodEntry[],
+function filterEntriesByRange<T extends { date: string; createdAt?: string }>(
+  entries: T[],
   filter: MoodHistoryFilter
-): MoodEntry[] {
+): T[] {
   if (filter === "all") return entries;
   const now = Date.now();
   const days = filter === "7" ? 7 : 30;
@@ -338,8 +338,150 @@ function MoodCard({
   );
 }
 
+type WellnessHistoryEntry = {
+  id: string;
+  date: string;
+  createdAt?: string;
+  weight?: number;
+  sleepHours?: number;
+};
+
+type TimelineEntry =
+  | {
+      kind: "mood";
+      id: string;
+      date: string;
+      createdAt?: string;
+      moodEntry: MoodEntry;
+    }
+  | {
+      kind: "wellness";
+      id: string;
+      date: string;
+      createdAt?: string;
+      wellnessEntry: WellnessHistoryEntry;
+    };
+
+function WellnessCard({
+  entry,
+  colors,
+  isDarkMode,
+  index,
+}: {
+  entry: WellnessHistoryEntry;
+  colors: Record<string, string>;
+  isDarkMode: boolean;
+  index: number;
+}) {
+  const timeStr = formatTime(entry.createdAt);
+  const animOpacity = useRef(new Animated.Value(0)).current;
+  const animTranslate = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    const delay = Math.min(index * 60, 300);
+    Animated.parallel([
+      Animated.timing(animOpacity, {
+        toValue: 1,
+        duration: 350,
+        delay,
+        useNativeDriver: Platform.OS !== "web",
+      }),
+      Animated.timing(animTranslate, {
+        toValue: 0,
+        duration: 350,
+        delay,
+        useNativeDriver: Platform.OS !== "web",
+      }),
+    ]).start();
+  }, [index, animOpacity, animTranslate]);
+
+  return (
+    <Animated.View
+      style={[
+        {
+          opacity: animOpacity,
+          transform: [{ translateY: animTranslate }],
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.entryCard,
+          {
+            backgroundColor: colors.card,
+          },
+          isDarkMode
+            ? { borderColor: colors.border, borderWidth: 1 }
+            : {
+                shadowColor: "#6C63FF",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.08,
+                shadowRadius: 12,
+                elevation: 3,
+              },
+        ]}
+      >
+        <View style={styles.entryRow}>
+          <View
+            style={[styles.emojiContainer, { backgroundColor: colors.primaryLight }]}
+          >
+            <Text style={styles.entryEmoji}>🧩</Text>
+          </View>
+          <View style={styles.entryMain}>
+            <Text style={[styles.entryMood, { color: colors.text }]}>Body & Sleep Check-in</Text>
+            <Text style={[styles.entryTime, { color: colors.textMuted }]}>
+              {timeStr || "—"}
+            </Text>
+            <View style={styles.wellnessPillsRow}>
+              {entry.weight != null ? (
+                <View
+                  style={[
+                    styles.wellnessPill,
+                    { backgroundColor: colors.primaryLight },
+                  ]}
+                >
+                  <Scale color={colors.primary} size={12} />
+                  <Text
+                    style={[styles.wellnessPillText, { color: colors.primary }]}
+                  >
+                    {entry.weight.toFixed(1)} kg
+                  </Text>
+                </View>
+              ) : null}
+
+              {entry.sleepHours != null ? (
+                <View
+                  style={[
+                    styles.wellnessPill,
+                    { backgroundColor: colors.primaryLight },
+                  ]}
+                >
+                  <Moon color={colors.primary} size={12} />
+                  <Text
+                    style={[styles.wellnessPillText, { color: colors.primary }]}
+                  >
+                    {entry.sleepHours.toFixed(1)} hrs
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+        </View>
+      </View>
+    </Animated.View>
+  );
+}
+
 export default function MoodHistoryScreen() {
-  const { moodEntries, refetchMoods, isLoading } = useMood();
+  const {
+    moodEntries,
+    weightLogs,
+    sleepLogs,
+    refetchMoods,
+    refetchWeightLogs,
+    refetchSleepLogs,
+    isLoading,
+  } = useMood();
   const { colors, isDarkMode } = useTheme();
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
@@ -352,11 +494,61 @@ export default function MoodHistoryScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refetchMoods();
+    await Promise.all([refetchMoods(), refetchWeightLogs(), refetchSleepLogs()]);
     setRefreshing(false);
-  }, [refetchMoods]);
+  }, [refetchMoods, refetchWeightLogs, refetchSleepLogs]);
 
-  const filteredEntries = useMemo(() => {
+  const wellnessEntries = useMemo<WellnessHistoryEntry[]>(() => {
+    const byDate = new Map<string, WellnessHistoryEntry>();
+
+    const applyCreatedAt = (
+      existing: WellnessHistoryEntry,
+      candidateCreatedAt: string | undefined,
+      date: string,
+    ) => {
+      const candidate = candidateCreatedAt ?? `${date}T12:00:00`;
+      if (!existing.createdAt) {
+        existing.createdAt = candidate;
+        return;
+      }
+
+      if (new Date(candidate).getTime() > new Date(existing.createdAt).getTime()) {
+        existing.createdAt = candidate;
+      }
+    };
+
+    for (const weightLog of weightLogs as WeightLog[]) {
+      const existing = byDate.get(weightLog.logDate) ?? {
+        id: `wellness-${weightLog.logDate}`,
+        date: weightLog.logDate,
+      };
+      existing.weight = weightLog.weight;
+      applyCreatedAt(existing, weightLog.createdAt, weightLog.logDate);
+      byDate.set(weightLog.logDate, existing);
+    }
+
+    for (const sleepLog of sleepLogs as SleepLog[]) {
+      const existing = byDate.get(sleepLog.logDate) ?? {
+        id: `wellness-${sleepLog.logDate}`,
+        date: sleepLog.logDate,
+      };
+      existing.sleepHours = sleepLog.sleepHours;
+      applyCreatedAt(existing, sleepLog.createdAt, sleepLog.logDate);
+      byDate.set(sleepLog.logDate, existing);
+    }
+
+    return Array.from(byDate.values()).sort((a, b) => {
+      const aTime = a.createdAt
+        ? new Date(a.createdAt).getTime()
+        : new Date(a.date + "T12:00:00").getTime();
+      const bTime = b.createdAt
+        ? new Date(b.createdAt).getTime()
+        : new Date(b.date + "T12:00:00").getTime();
+      return bTime - aTime;
+    });
+  }, [weightLogs, sleepLogs]);
+
+  const filteredMoodEntries = useMemo(() => {
     const byRange = filterEntriesByRange(moodEntries, filter);
     if (selectedCalendarDate) {
       return byRange.filter((e) => e.date === selectedCalendarDate);
@@ -364,9 +556,45 @@ export default function MoodHistoryScreen() {
     return byRange;
   }, [moodEntries, filter, selectedCalendarDate]);
 
+  const filteredWellnessEntries = useMemo(() => {
+    const byRange = filterEntriesByRange(wellnessEntries, filter);
+    if (selectedCalendarDate) {
+      return byRange.filter((e) => e.date === selectedCalendarDate);
+    }
+    return byRange;
+  }, [wellnessEntries, filter, selectedCalendarDate]);
+
+  const timelineEntries = useMemo<TimelineEntry[]>(() => {
+    const moodTimeline: TimelineEntry[] = filteredMoodEntries.map((entry) => ({
+      kind: "mood",
+      id: entry.id,
+      date: entry.date,
+      createdAt: entry.createdAt,
+      moodEntry: entry,
+    }));
+
+    const wellnessTimeline: TimelineEntry[] = filteredWellnessEntries.map((entry) => ({
+      kind: "wellness",
+      id: entry.id,
+      date: entry.date,
+      createdAt: entry.createdAt,
+      wellnessEntry: entry,
+    }));
+
+    return [...moodTimeline, ...wellnessTimeline].sort((a, b) => {
+      const aTime = a.createdAt
+        ? new Date(a.createdAt).getTime()
+        : new Date(a.date + "T12:00:00").getTime();
+      const bTime = b.createdAt
+        ? new Date(b.createdAt).getTime()
+        : new Date(b.date + "T12:00:00").getTime();
+      return bTime - aTime;
+    });
+  }, [filteredMoodEntries, filteredWellnessEntries]);
+
   const groupedByDate = useMemo(() => {
-    const map = new Map<string, MoodEntry[]>();
-    for (const entry of filteredEntries) {
+    const map = new Map<string, TimelineEntry[]>();
+    for (const entry of timelineEntries) {
       const label = getDateLabel(entry.date);
       if (!map.has(label)) map.set(label, []);
       map.get(label)!.push(entry);
@@ -382,17 +610,17 @@ export default function MoodHistoryScreen() {
         return dateB.localeCompare(dateA);
       });
     return [today, yesterday, ...rest].filter((k) => map.has(k));
-  }, [filteredEntries]);
+  }, [timelineEntries]);
 
   const sections = useMemo(() => {
-    const map = new Map<string, MoodEntry[]>();
-    for (const entry of filteredEntries) {
+    const map = new Map<string, TimelineEntry[]>();
+    for (const entry of timelineEntries) {
       const label = getDateLabel(entry.date);
       if (!map.has(label)) map.set(label, []);
       map.get(label)!.push(entry);
     }
     return { map, order: groupedByDate };
-  }, [filteredEntries, groupedByDate]);
+  }, [timelineEntries, groupedByDate]);
 
   const handleEntryPress = useCallback(
     (id: string) => {
@@ -542,8 +770,8 @@ export default function MoodHistoryScreen() {
           <Text
             style={[styles.headerSubtitle, { color: colors.textMuted }]}
           >
-            {filteredEntries.length}{" "}
-            {filteredEntries.length === 1 ? "entry" : "entries"}
+            {timelineEntries.length}{" "}
+            {timelineEntries.length === 1 ? "entry" : "entries"}
           </Text>
 
           {selectedCalendarDate ? (
@@ -572,7 +800,7 @@ export default function MoodHistoryScreen() {
     </View>
   );
 
-  if (moodEntries.length === 0 && !isLoading) {
+  if (moodEntries.length === 0 && wellnessEntries.length === 0 && !isLoading) {
     return (
       <ScreenLayout gradientKey="insights">
         {renderHeader()}
@@ -584,10 +812,10 @@ export default function MoodHistoryScreen() {
               <History color={colors.primary} size={40} />
             </View>
             <Text style={[styles.emptyTitle, { color: colors.text }]}>
-              No mood entries yet
+              No history entries yet
             </Text>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              Your mood check-ins from Home will appear here in a timeline.
+              Your mood and wellness check-ins from Home will appear here in a timeline.
             </Text>
           </View>
         )}
@@ -641,16 +869,30 @@ export default function MoodHistoryScreen() {
               >
                 {dateLabel}
               </Text>
-              {entries.map((entry, idx) => (
-                <MoodCard
-                  key={entry.id}
-                  entry={entry}
-                  index={idx}
-                  colors={colors}
-                  isDarkMode={isDarkMode}
-                  onPress={() => handleEntryPress(entry.id)}
-                />
-              ))}
+              {entries.map((entry, idx) => {
+                if (entry.kind === "mood") {
+                  return (
+                    <MoodCard
+                      key={entry.id}
+                      entry={entry.moodEntry}
+                      index={idx}
+                      colors={colors}
+                      isDarkMode={isDarkMode}
+                      onPress={() => handleEntryPress(entry.id)}
+                    />
+                  );
+                }
+
+                return (
+                  <WellnessCard
+                    key={entry.id}
+                    entry={entry.wellnessEntry}
+                    index={idx}
+                    colors={colors}
+                    isDarkMode={isDarkMode}
+                  />
+                );
+              })}
             </View>
           );
         })}
@@ -846,6 +1088,24 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: 8,
     lineHeight: 20,
+  },
+  wellnessPillsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  wellnessPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 50,
+  },
+  wellnessPillText: {
+    fontSize: 12,
+    fontWeight: "600",
   },
   emptyState: {
     flex: 1,

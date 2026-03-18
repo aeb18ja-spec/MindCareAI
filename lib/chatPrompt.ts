@@ -6,6 +6,8 @@ export type ChatUserContext = {
   stressLevel: number;
   latestJournal: string;
   moodStreak: number;
+  bmi: number | null;
+  bmiCategory: string | null;
 };
 
 const BASE_SYSTEM_PROMPT = `You are a supportive, empathetic, and human-like mental wellness assistant inside a mood tracking app.
@@ -56,6 +58,7 @@ ${moodBlock}
 - Stress level: ${context.stressLevel}/10
 - Latest journal entry: "${journalBlock}"
 - Mood streak: ${context.moodStreak} day(s)
+- BMI: ${context.bmi != null ? `${context.bmi} (${context.bmiCategory ?? "Unknown"})` : "Not available"}
 `;
 
   return BASE_SYSTEM_PROMPT + "\n" + contextSection;

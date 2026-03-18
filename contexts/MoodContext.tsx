@@ -1,4 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { fetchWeightLogs, insertWeightLog as insertWeightLogApi } from "@/lib/bmi";
+import { fetchSleepLogs, insertSleepLog as insertSleepLogApi } from "@/lib/sleep";
 import { fetchJournals, insertJournal } from "@/lib/journals";
 import {
   deleteMood,
@@ -7,7 +9,7 @@ import {
   updateMood,
 } from "@/lib/moods";
 import { calculateMoodStreak, getMoodStreakMessage } from "@/lib/streak";
-import type { MoodEntry, JournalEntry } from "@/types/mood";
+import type { MoodEntry, JournalEntry, SleepLog, WeightLog } from "@/types/mood";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import createContextHook from "@nkzw/create-context-hook";
 import { useCallback, useMemo } from "react";
@@ -29,8 +31,22 @@ export const [MoodProvider, useMood] = createContextHook(() => {
     enabled: !!userId,
   });
 
+  const weightLogsQuery = useQuery({
+    queryKey: ["weight_logs", userId],
+    queryFn: fetchWeightLogs,
+    enabled: !!userId,
+  });
+
+  const sleepLogsQuery = useQuery({
+    queryKey: ["sleep_logs", userId],
+    queryFn: fetchSleepLogs,
+    enabled: !!userId,
+  });
+
   const moodEntries: MoodEntry[] = moodsQuery.data ?? [];
   const journalEntries: JournalEntry[] = journalQuery.data ?? [];
+  const weightLogs: WeightLog[] = weightLogsQuery.data ?? [];
+  const sleepLogs: SleepLog[] = sleepLogsQuery.data ?? [];
 
   const addMoodEntry = useCallback(
     async (entry: Omit<MoodEntry, "id">) => {
@@ -99,6 +115,32 @@ export const [MoodProvider, useMood] = createContextHook(() => {
     [userId, queryClient]
   );
 
+  const addWeightLog = useCallback(
+    async (weight: number) => {
+      if (!userId) return;
+      await insertWeightLogApi(weight);
+      await queryClient.invalidateQueries({ queryKey: ["weight_logs", userId] });
+    },
+    [userId, queryClient]
+  );
+
+  const refetchWeightLogs = useCallback(async () => {
+    if (userId) await queryClient.refetchQueries({ queryKey: ["weight_logs", userId] });
+  }, [userId, queryClient]);
+
+  const addSleepLog = useCallback(
+    async (sleepHours: number, note?: string) => {
+      if (!userId) return;
+      await insertSleepLogApi(sleepHours, note);
+      await queryClient.invalidateQueries({ queryKey: ["sleep_logs", userId] });
+    },
+    [userId, queryClient]
+  );
+
+  const refetchSleepLogs = useCallback(async () => {
+    if (userId) await queryClient.refetchQueries({ queryKey: ["sleep_logs", userId] });
+  }, [userId, queryClient]);
+
   const getMoodById = useCallback(
     (id: string) => moodEntries.find((e) => e.id === id) ?? null,
     [moodEntries]
@@ -116,8 +158,12 @@ export const [MoodProvider, useMood] = createContextHook(() => {
   return {
     moodEntries,
     journalEntries,
+    weightLogs,
+    sleepLogs,
     addMoodEntry,
     addJournalEntry,
+    addWeightLog,
+    addSleepLog,
     updateMoodEntry,
     deleteMoodEntry,
     getMoodById,
@@ -126,6 +172,12 @@ export const [MoodProvider, useMood] = createContextHook(() => {
     moodStreakMessage,
     refetchMoods,
     refetchJournal,
-    isLoading: moodsQuery.isLoading || journalQuery.isLoading,
+    refetchWeightLogs,
+    refetchSleepLogs,
+    isLoading:
+      moodsQuery.isLoading
+      || journalQuery.isLoading
+      || weightLogsQuery.isLoading
+      || sleepLogsQuery.isLoading,
   };
 });

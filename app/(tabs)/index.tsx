@@ -3,9 +3,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMood } from "@/contexts/MoodContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { MOOD_CONFIG, MoodType } from "@/types/mood";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { CheckCircle, Sparkles } from "lucide-react-native";
-import React, { useState } from "react";
+import { CheckCircle, Moon, Scale, Sparkles } from "lucide-react-native";
+import React, { useEffect, useRef, useState } from "react";
 import {
     Dimensions,
     ScrollView,
@@ -28,11 +30,40 @@ const ACTIVITIES = [
 
 const { width } = Dimensions.get("window");
 
+const bodySleepCheckinKeyForUser = (userId: string) =>
+  `@mindcare_body_sleep_checkin:${userId}`;
+
+const getLocalDateKey = (date: Date) =>
+  `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+
+const isSameLocalDay = (a: Date, b: Date) => getLocalDateKey(a) === getLocalDateKey(b);
+
+const getNextMidnight = () => {
+  const next = new Date();
+  next.setHours(24, 0, 0, 0);
+  return next;
+};
+
+const formatCountdown = (remainingMs: number) => {
+  const totalSeconds = Math.max(0, Math.floor(remainingMs / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${hours}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
+};
+
 export default function HomeScreen() {
-  const { getTodayMood, addMoodEntry, moodStreak, moodStreakMessage } = useMood();
+  const params = useLocalSearchParams<{ focus?: string; focusToken?: string }>();
+  const focusTarget = Array.isArray(params.focus) ? params.focus[0] : params.focus;
+  const focusToken = Array.isArray(params.focusToken)
+    ? params.focusToken[0]
+    : params.focusToken;
+  const { getTodayMood, addMoodEntry, addWeightLog, addSleepLog, moodStreak, moodStreakMessage } = useMood();
   const { colors, isDarkMode } = useTheme();
-  const { currentUser } = useAuth();
+  const { currentUser, updateProfile } = useAuth();
   const todayMood = getTodayMood();
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
   const [stressLevel, setStressLevel] = useState<number>(5);
@@ -40,6 +71,110 @@ export default function HomeScreen() {
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dailyWeight, setDailyWeight] = useState<string>("");
+  const [dailySleep, setDailySleep] = useState<string>("");
+  const [bodySleepError, setBodySleepError] = useState<string | null>(null);
+  const [isSavingBodySleep, setIsSavingBodySleep] = useState(false);
+  const [bodySleepLastCheckinAt, setBodySleepLastCheckinAt] = useState<number | null>(null);
+  const [countdownNow, setCountdownNow] = useState<number>(Date.now());
+  const [bodySleepSectionY, setBodySleepSectionY] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadBodySleepCheckin = async () => {
+      if (!currentUser?.id) {
+        if (!cancelled) {
+          setBodySleepLastCheckinAt(null);
+        }
+        return;
+      }
+
+      try {
+        const stored = await AsyncStorage.getItem(
+          bodySleepCheckinKeyForUser(currentUser.id),
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!stored) {
+          setBodySleepLastCheckinAt(null);
+          return;
+        }
+
+        const parsed = Number(stored);
+        setBodySleepLastCheckinAt(Number.isFinite(parsed) ? parsed : null);
+      } catch {
+        if (!cancelled) {
+          setBodySleepLastCheckinAt(null);
+        }
+      }
+    };
+
+    void loadBodySleepCheckin();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.id]);
+
+  const hasBodySleepCheckedToday =
+    bodySleepLastCheckinAt != null
+      ? isSameLocalDay(new Date(bodySleepLastCheckinAt), new Date(countdownNow))
+      : false;
+
+  const nextBodySleepEntryAt = hasBodySleepCheckedToday
+    ? getNextMidnight()
+    : null;
+
+  const nextBodySleepEntryInMs = nextBodySleepEntryAt
+    ? nextBodySleepEntryAt.getTime() - countdownNow
+    : null;
+
+  const nextBodySleepEntryLabel = nextBodySleepEntryAt
+    ? nextBodySleepEntryAt.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : null;
+
+  const nextBodySleepCountdownLabel =
+    nextBodySleepEntryInMs != null
+      ? formatCountdown(nextBodySleepEntryInMs)
+      : null;
+
+  useEffect(() => {
+    if (!hasBodySleepCheckedToday) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setCountdownNow(Date.now());
+    }, 1000);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [hasBodySleepCheckedToday]);
+
+  useEffect(() => {
+    if (focusTarget !== "body-sleep" || bodySleepSectionY == null) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      scrollViewRef.current?.scrollTo({
+        y: Math.max(0, bodySleepSectionY - 16),
+        animated: true,
+      });
+    }, 80);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [focusTarget, focusToken, bodySleepSectionY]);
 
   const currentHour = new Date().getHours();
   // include user name if available
@@ -84,6 +219,7 @@ export default function HomeScreen() {
         activities:
           selectedActivities.length > 0 ? selectedActivities : undefined,
       });
+
       setSelectedMood(null);
       setStressLevel(5);
       setNote("");
@@ -92,6 +228,96 @@ export default function HomeScreen() {
       setSubmitError(e instanceof Error ? e.message : "Failed to save mood.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSaveBodySleep = async () => {
+    if (hasBodySleepCheckedToday) {
+      setBodySleepError(
+        nextBodySleepEntryLabel
+          ? `Body & Sleep check-in already completed today. Next entry at ${nextBodySleepEntryLabel}.`
+          : "Body & Sleep check-in already completed today.",
+      );
+      return;
+    }
+
+    const trimmedWeight = dailyWeight.trim();
+    const trimmedSleep = dailySleep.trim();
+    const parsedWeight = Number(dailyWeight);
+    const parsedSleep = Number(dailySleep);
+
+    if (!trimmedWeight && !trimmedSleep) {
+      setBodySleepError("Please enter weight or sleep hours.");
+      return;
+    }
+
+    if (
+      trimmedWeight &&
+      (!Number.isFinite(parsedWeight) || parsedWeight <= 0 || parsedWeight > 500)
+    ) {
+      setBodySleepError("Please enter a valid weight (1-500 kg).");
+      return;
+    }
+
+    if (
+      trimmedSleep &&
+      (!Number.isFinite(parsedSleep) || parsedSleep < 0 || parsedSleep > 24)
+    ) {
+      setBodySleepError("Please enter valid sleeping hours (0-24).");
+      return;
+    }
+
+    setBodySleepError(null);
+    setIsSavingBodySleep(true);
+
+    try {
+      const profileUpdates: {
+        weight?: number;
+        sleepingHours?: number;
+      } = {};
+
+      if (trimmedWeight) {
+        profileUpdates.weight = parsedWeight;
+      }
+
+      if (trimmedSleep) {
+        profileUpdates.sleepingHours = parsedSleep;
+      }
+
+      await updateProfile(profileUpdates);
+
+      if (trimmedWeight) {
+        try {
+          await addWeightLog(parsedWeight);
+        } catch {}
+      }
+
+      if (trimmedSleep) {
+        try {
+          await addSleepLog(parsedSleep);
+        } catch {}
+      }
+
+      const checkinTimestamp = Date.now();
+      setBodySleepLastCheckinAt(checkinTimestamp);
+
+      if (currentUser?.id) {
+        try {
+          await AsyncStorage.setItem(
+            bodySleepCheckinKeyForUser(currentUser.id),
+            String(checkinTimestamp),
+          );
+        } catch {}
+      }
+
+      setDailyWeight("");
+      setDailySleep("");
+    } catch (e) {
+      setBodySleepError(
+        e instanceof Error ? e.message : "Failed to save body & sleep.",
+      );
+    } finally {
+      setIsSavingBodySleep(false);
     }
   };
 
@@ -142,6 +368,7 @@ export default function HomeScreen() {
   return (
     <ScreenLayout gradientKey="home">
       <ScrollView
+        ref={scrollViewRef}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -561,6 +788,148 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* ── Daily Weight & Sleep ── */}
+        <View
+          style={[styles.card, cardStyle, cardShadow]}
+          onLayout={(event) => setBodySleepSectionY(event.nativeEvent.layout.y)}
+        >
+          <Text style={[styles.sectionLabel, { color: colors.primary }]}>
+            BODY & SLEEP
+          </Text>
+          {hasBodySleepCheckedToday ? (
+            <View
+              style={[
+                styles.bodyCheckinDoneBox,
+                {
+                  backgroundColor: isDarkMode
+                    ? colors.surface
+                    : colors.borderLight,
+                },
+              ]}
+            >
+              <Text style={[styles.bodyCheckinDoneTitle, { color: colors.success }]}>
+                Checked in for today
+              </Text>
+              {nextBodySleepEntryLabel && (
+                <Text
+                  style={[styles.bodyCheckinDoneTime, { color: colors.textMuted }]}
+                >
+                  Next entry at {nextBodySleepEntryLabel}
+                </Text>
+              )}
+              {nextBodySleepCountdownLabel && (
+                <Text
+                  style={[
+                    styles.bodyCheckinDoneCountdown,
+                    { color: colors.textMuted },
+                  ]}
+                >
+                  Next entry in {nextBodySleepCountdownLabel}
+                </Text>
+              )}
+            </View>
+          ) : (
+            <Text style={[styles.bodySubtext, { color: colors.textMuted }]}>
+              Optional — helps generate better wellness insights
+            </Text>
+          )}
+          <View style={styles.bodyRow}>
+            <View style={styles.bodyInputCol}>
+              <View style={styles.bodyLabelRow}>
+                <Scale color={colors.primary} size={14} />
+                <Text
+                  style={[styles.bodyLabel, { color: colors.textSecondary }]}
+                >
+                  Weight (kg)
+                </Text>
+              </View>
+              <TextInput
+                style={[
+                  styles.bodyInput,
+                  hasBodySleepCheckedToday && styles.bodyInputDisabled,
+                  {
+                    backgroundColor: isDarkMode
+                      ? colors.surface
+                      : colors.borderLight,
+                    color: colors.text,
+                  },
+                  isDarkMode
+                    ? { borderColor: colors.border, borderWidth: 1 }
+                    : {},
+                ]}
+                placeholder={currentUser?.weight ? `${currentUser.weight}` : "e.g. 70"}
+                placeholderTextColor={colors.textMuted}
+                value={dailyWeight}
+                onChangeText={setDailyWeight}
+                keyboardType="numeric"
+                editable={!hasBodySleepCheckedToday}
+              />
+            </View>
+            <View style={styles.bodyInputCol}>
+              <View style={styles.bodyLabelRow}>
+                <Moon color="#8B5CF6" size={14} />
+                <Text
+                  style={[styles.bodyLabel, { color: colors.textSecondary }]}
+                >
+                  Sleep (hrs)
+                </Text>
+              </View>
+              <TextInput
+                style={[
+                  styles.bodyInput,
+                  hasBodySleepCheckedToday && styles.bodyInputDisabled,
+                  {
+                    backgroundColor: isDarkMode
+                      ? colors.surface
+                      : colors.borderLight,
+                    color: colors.text,
+                  },
+                  isDarkMode
+                    ? { borderColor: colors.border, borderWidth: 1 }
+                    : {},
+                ]}
+                placeholder={currentUser?.sleepingHours ? `${currentUser.sleepingHours}` : "e.g. 7"}
+                placeholderTextColor={colors.textMuted}
+                value={dailySleep}
+                onChangeText={setDailySleep}
+                keyboardType="numeric"
+                editable={!hasBodySleepCheckedToday}
+              />
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.bodySaveButtonWrap}
+            onPress={handleSaveBodySleep}
+            disabled={isSavingBodySleep || hasBodySleepCheckedToday}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={gradientButton}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[
+                styles.bodySaveGradient,
+                (isSavingBodySleep || hasBodySleepCheckedToday) && styles.submitDisabled,
+              ]}
+            >
+              <Text style={styles.bodySaveText}>
+                {hasBodySleepCheckedToday
+                  ? "Checked in for today"
+                  : isSavingBodySleep
+                    ? "Saving..."
+                    : "Save Body & Sleep"}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {bodySleepError && (
+            <Text style={[styles.bodyErrorText, { color: colors.danger }]}>
+              {bodySleepError}
+            </Text>
+          )}
+        </View>
+
         {/* ── Submit Error ── */}
         {submitError && (
           <View
@@ -918,6 +1287,82 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
     minHeight: 100,
     lineHeight: 22,
+  },
+
+  /* ── Body & Sleep ── */
+  bodySubtext: {
+    fontSize: 13,
+    fontWeight: "500",
+    marginTop: -8,
+    marginBottom: 14,
+  },
+  bodyCheckinDoneBox: {
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: -8,
+    marginBottom: 14,
+    gap: 2,
+  },
+  bodyCheckinDoneTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  bodyCheckinDoneTime: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  bodyCheckinDoneCountdown: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  bodyRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  bodyInputCol: {
+    flex: 1,
+    gap: 8,
+  },
+  bodyLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  bodyLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  bodyInput: {
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  bodyInputDisabled: {
+    opacity: 0.7,
+  },
+  bodySaveButtonWrap: {
+    borderRadius: 12,
+    overflow: "hidden",
+    marginTop: 14,
+  },
+  bodySaveGradient: {
+    paddingVertical: 14,
+    alignItems: "center",
+    borderRadius: 12,
+  },
+  bodySaveText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+  bodyErrorText: {
+    fontSize: 13,
+    fontWeight: "500",
+    marginTop: 10,
   },
 
   /* ── Submit ── */

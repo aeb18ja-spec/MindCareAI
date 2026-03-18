@@ -3,6 +3,7 @@ import ChatFloatingButton from "@/components/ChatFloatingButton";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { MoodProvider } from "@/contexts/MoodContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { initializeReminderNotifications } from "@/lib/reminders";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -79,6 +80,7 @@ function RootLayoutNav() {
 export default function RootLayout() {
   useEffect(() => {
     SplashScreen.hideAsync();
+    void initializeReminderNotifications();
   }, []);
 
   return (

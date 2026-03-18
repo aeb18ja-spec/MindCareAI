@@ -41,7 +41,7 @@ function dobDisplayToISO(display: string): string {
 }
 
 export default function CompleteProfileScreen() {
-  const { updateProfile, currentUser } = useAuth();
+  const { updateProfile, currentUser, logout } = useAuth();
   const router = useRouter();
   const { colors, isDarkMode } = useTheme();
   const { width, height: viewportHeight } = useWindowDimensions();
@@ -55,6 +55,16 @@ export default function CompleteProfileScreen() {
   const [sleepingHours, setSleepingHours] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const handleBack = async () => {
+    try {
+      await logout();
+      router.replace("/login");
+    } catch (err) {
+      console.error("Logout failed:", err);
+      router.replace("/login");
+    }
+  };
 
   // Calculate progress (how many fields are filled)
   const filledFields = [dob, weight, profileHeight, sleepingHours].filter(
@@ -183,7 +193,7 @@ export default function CompleteProfileScreen() {
             {/* Back button */}
             <TouchableOpacity
               style={styles.backRow}
-              onPress={() => router.back()}
+              onPress={handleBack}
               accessibilityLabel="Go back"
               activeOpacity={0.7}
             >

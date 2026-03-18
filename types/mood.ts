@@ -39,3 +39,18 @@ export function getMoodScore(mood: MoodType): number {
   };
   return scores[mood];
 }
+
+export type WeightLog = {
+  id: string;
+  weight: number;
+  logDate: string;
+  createdAt?: string;
+};
+
+export type SleepLog = {
+  id: string;
+  sleepHours: number;
+  logDate: string;
+  note?: string;
+  createdAt?: string;
+};

@@ -1,6 +1,8 @@
+import { calculateBMI, getBMICategory } from "@/lib/bmi";
 import { clearUserCache } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 import createContextHook from "@nkzw/create-context-hook";
+import * as Linking from "expo-linking";
 import { useCallback, useEffect, useState } from "react";
 
 export type AuthUser = {
@@ -12,6 +14,8 @@ export type AuthUser = {
   sleepingHours: number;
   email: string;
   createdAt: string;
+  bmi: number | null;
+  bmiCategory: string | null;
 };
 
 /** Compute age in years from ISO date string (e.g. "1990-01-15"). Use when UI needs to display age. */
@@ -79,7 +83,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   const fetchProfile = useCallback(async (userId: string, email?: string) => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, name, dob, weight, height, sleeping_hours, created_at")
+      .select("id, name, dob, weight, height, sleeping_hours, bmi, bmi_category, created_at")
       .eq("id", userId)
       .maybeSingle();
 
@@ -91,6 +95,10 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       return null;
     }
 
+    // Use DB-stored BMI if available; otherwise compute client-side
+    const computedBmi = data.bmi ?? calculateBMI(data.weight, data.height);
+    const computedCategory = data.bmi_category ?? getBMICategory(computedBmi);
+
     return {
       id: data.id,
       name: data.name,
@@ -100,6 +108,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       sleepingHours: data.sleeping_hours,
       email: email ?? "",
       createdAt: data.created_at,
+      bmi: computedBmi,
+      bmiCategory: computedCategory,
     } as AuthUser;
   }, []);
 
@@ -212,10 +222,14 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   const signup = useCallback(
     async (email: string, password: string) => {
       const normalizedEmail = email.trim().toLowerCase();
+      const emailRedirectTo = Linking.createURL("/login");
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: normalizedEmail,
         password,
+        options: {
+          emailRedirectTo,
+        },
       });
 
       if (authError) {
@@ -312,7 +326,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   );
 
   const logout = useCallback(async () => {
-    const { error } = await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut({ scope: "local" });
     await clearUserCache();
     if (error) {
       throw new Error(error.message);

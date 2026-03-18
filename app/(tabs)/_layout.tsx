@@ -1,7 +1,7 @@
 // template
 import { useTheme } from "@/contexts/ThemeContext";
 import { Tabs } from "expo-router";
-import { BookText, History, Home, LineChart, Settings } from "lucide-react-native";
+import { BookText, Heart, History, Home, LineChart, Settings } from "lucide-react-native";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import "../../global.css";
@@ -95,6 +95,15 @@ export default function TabLayout() {
           title: "Insights",
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={LineChart} color={color} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="wellness"
+        options={{
+          title: "Wellness",
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon Icon={Heart} color={color} focused={focused} />
           ),
         }}
       />

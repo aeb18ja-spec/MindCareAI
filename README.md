@@ -23,7 +23,19 @@ Mental health companion app built with Expo (React Native), Supabase, and React 
    ```
    EXPO_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
    EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   EXPO_PUBLIC_OTP_SERVER_URL=http://YOUR_LOCAL_IP:3001
    ```
+
+   For the OTP server (`server/`), create `server/.env` with:
+
+   ```
+   EMAIL_USER=your-sender@gmail.com
+   EMAIL_APP_PASSWORD=your-gmail-app-password
+   SUPABASE_URL=https://your-project-ref.supabase.co
+   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+   ```
+
+   `SUPABASE_SERVICE_ROLE_KEY` is required so OTP verification can create a pre-confirmed user and avoid a second Supabase confirmation email.
 
 3. **Supabase setup**
 

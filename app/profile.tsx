@@ -1,6 +1,7 @@
 import ScreenLayout from "@/components/ScreenLayout";
 import { getAgeFromDob, useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { calculateBMI, getBMICategory, getBMICategoryColor } from "@/lib/bmi";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
@@ -11,6 +12,7 @@ import {
   Mail,
   Moon,
   Ruler,
+  Scale,
   Shield,
   User,
   Weight,
@@ -288,8 +290,27 @@ export default function ProfileScreen() {
                 : "\u2014"
             }
             colors={colors}
-            isLast
           />
+          {(() => {
+            const userBmi = currentUser.bmi ?? calculateBMI(currentUser.weight, currentUser.height);
+            const category = currentUser.bmiCategory ?? getBMICategory(userBmi);
+            const catColor = getBMICategoryColor(category as any);
+            return (
+              <InfoRow
+                icon={Scale}
+                iconColor={catColor}
+                iconBg={catColor + "18"}
+                label="BMI"
+                value={
+                  userBmi != null
+                    ? `${userBmi.toFixed(1)} — ${category}`
+                    : "\u2014"
+                }
+                colors={colors}
+                isLast
+              />
+            );
+          })()}
         </View>
 
         {/* ── Account Details Card ── */}

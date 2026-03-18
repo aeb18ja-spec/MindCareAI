@@ -20,7 +20,7 @@ const OTP_LENGTH = 6;
 const RESEND_COOLDOWN_SECONDS = 60;
 
 export default function VerifyOtpScreen() {
-  const { signup } = useAuth();
+  const { login, signup } = useAuth();
   const router = useRouter();
   const { colors, isDarkMode } = useTheme();
   const { height } = useWindowDimensions();
@@ -107,6 +107,11 @@ export default function VerifyOtpScreen() {
 
   const handleVerify = async () => {
     const otpString = otp.join("");
+    if (!email || !password) {
+      setError("Signup session expired. Please try signing up again.");
+      return;
+    }
+
     if (otpString.length !== OTP_LENGTH) {
       setError("Please enter the complete 6-digit code.");
       return;
@@ -116,21 +121,64 @@ export default function VerifyOtpScreen() {
       setLoading(true);
       setError("");
 
-      // Verify OTP
-      const res = await fetch(`${otpServerUrl}/verify-otp`, {
+      // Verify OTP and create a confirmed Supabase user on the server
+      const res = await fetch(`${otpServerUrl}/verify-otp-signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp: otpString }),
+        body: JSON.stringify({ email, otp: otpString, password }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Invalid OTP.");
+        const serverError = typeof data?.error === "string" ? data.error : "";
+
+        // Backward-compatible fallback when server doesn't have service-role key.
+        // This avoids hard-failing OTP verification for local/dev setups.
+        if (serverError.includes("SUPABASE_SERVICE_ROLE_KEY")) {
+          const otpOnlyRes = await fetch(`${otpServerUrl}/verify-otp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, otp: otpString }),
+          });
+
+          const otpOnlyData = await otpOnlyRes.json();
+          if (!otpOnlyRes.ok) {
+            setError(otpOnlyData.error || "Invalid OTP.");
+            return;
+          }
+
+          try {
+            await signup(email, password);
+            await login(email, password);
+
+            router.replace({
+              pathname: "/complete-profile" as any,
+              params: { email },
+            });
+            return;
+          } catch (fallbackErr) {
+            const fallbackMessage =
+              fallbackErr instanceof Error
+                ? fallbackErr.message
+                : "Signup failed. Please try again.";
+
+            if (fallbackMessage.toLowerCase().includes("email not confirmed")) {
+              setError(
+                "Account created. Please confirm the email link we sent, then login.",
+              );
+              return;
+            }
+
+            throw fallbackErr;
+          }
+        }
+
+        setError(serverError || "Invalid OTP.");
         return;
       }
 
-      // OTP verified — now create the Supabase account and auto-login
-      await signup(email, password);
+      // Account is created and email is pre-confirmed server-side, now login
+      await login(email, password);
 
       // Navigate to profile completion (user is now authenticated)
       router.replace({
@@ -138,10 +186,9 @@ export default function VerifyOtpScreen() {
         params: { email },
       });
     } catch (err) {
-      setLoading(false);
-      
+
       const message = err instanceof Error ? err.message : "Verification failed. Please try again.";
-      
+
       if (message.includes("already exists")) {
         setError("An account with this email already exists. Please login instead.");
       } else {
