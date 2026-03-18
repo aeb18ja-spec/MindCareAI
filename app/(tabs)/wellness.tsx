@@ -2,36 +2,36 @@ import ScreenLayout from "@/components/ScreenLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMood } from "@/contexts/MoodContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import type { BMICategory } from "@/lib/bmi";
 import { getBMICategoryColor, getBMICategoryDescription } from "@/lib/bmi";
 import { generateInsights, type WellnessInsight } from "@/lib/insights";
-import type { BMICategory } from "@/lib/bmi";
-import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import {
-  Activity,
-  ArrowDown,
-  ArrowUp,
-  Brain,
-  Heart,
-  Lightbulb,
-  Moon,
-  Ruler,
-  Scale,
-  Sparkles,
-  TrendingUp,
-  Weight,
-  Zap,
+    Activity,
+    ArrowDown,
+    ArrowUp,
+    Brain,
+    Heart,
+    Lightbulb,
+    Moon,
+    Ruler,
+    Scale,
+    Sparkles,
+    TrendingUp,
+    Weight,
+    Zap,
 } from "lucide-react-native";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  Animated,
-  DimensionValue,
-  Platform,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Animated,
+    DimensionValue,
+    Platform,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 const BMI_RANGES = [

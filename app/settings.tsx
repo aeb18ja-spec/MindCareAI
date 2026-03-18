@@ -3,32 +3,32 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
-  DAILY_REMINDER_TIME_LABEL,
-  disableDailyReminder,
-  enableDailyReminder,
-  getDailyReminderEnabled,
-  isDailyReminderSupported,
+    DAILY_REMINDER_TIME_LABEL,
+    disableDailyReminder,
+    enableDailyReminder,
+    getDailyReminderEnabled,
+    isDailyReminderSupported,
 } from "@/lib/reminders";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
-  Bell,
-  ChevronRight,
-  Heart,
-  Info,
-  Lock,
-  LogOut,
-  Shield,
-  User,
+    Bell,
+    ChevronRight,
+    Heart,
+    Info,
+    Lock,
+    LogOut,
+    Shield,
+    User,
 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 export default function SettingsScreen() {

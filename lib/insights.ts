@@ -1,6 +1,6 @@
+import type { BMICategory } from "@/lib/bmi";
 import type { MoodEntry } from "@/types/mood";
 import { getMoodScore } from "@/types/mood";
-import type { BMICategory } from "@/lib/bmi";
 
 // ─── Types ──────────────────────────────────────────────────
 
