@@ -1,0 +1,7 @@
+- [x] Inspect `components/MoodCalendarView.tsx` for scroll/layout constraints
+- [x] Apply scroll fix in `components/MoodCalendarView.tsx`
+- [ ] Apply wrapper/layout fix in `app/(tabs)/mood-history.tsx` if needed
+- [ ] Verify behavior for timeline and calendar modes on `/mood-history`
+- [ ] Add AI response text formatter in `app/(tabs)/chat.tsx`
+- [ ] Validate chat formatting behavior and run focused lint
+- [ ] Update TODO progress and summarize changes

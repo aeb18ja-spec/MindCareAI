@@ -3,33 +3,32 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMood } from "@/contexts/MoodContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
-    buildWellnessSystemPrompt,
-    type ChatUserContext,
+  type ChatUserContext
 } from "@/lib/chatPrompt";
 import { useRorkAgent } from "@rork-ai/toolkit-sdk";
 import { LinearGradient } from "expo-linear-gradient";
 import {
-    Bot,
-    Heart,
-    MessageCircle,
-    Send,
-    Shield,
-    Sparkles,
-    User,
-    X,
+  Bot,
+  Heart,
+  MessageCircle,
+  Send,
+  Shield,
+  Sparkles,
+  User,
+  X,
 } from "lucide-react-native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-    Animated,
-    FlatList,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Animated,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -39,6 +38,17 @@ const SUGGESTIONS = [
   { icon: Shield, label: "Help me manage stress", color: "#6C63FF" },
   { icon: MessageCircle, label: "I need someone to talk to", color: "#00D2FF" },
 ];
+
+function formatAssistantText(text: string): string {
+  return text
+    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/^[-*_]{3,}\s*$/gm, "")
+    .replace(/^\s*[-•]\s+/gm, "• ")
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
 
 export default function ChatScreen({ onClose }: { onClose?: () => void } = {}) {
   const [input, setInput] = useState<string>("");
@@ -76,14 +86,8 @@ export default function ChatScreen({ onClose }: { onClose?: () => void } = {}) {
     };
   }, [moodEntries, journalEntries, moodStreak, currentUser]);
 
-  const systemPrompt = useMemo(
-    () => buildWellnessSystemPrompt(userContext),
-    [userContext],
-  );
-
   const { messages, sendMessage } = useRorkAgent({
     tools: {},
-    system: systemPrompt,
   });
 
   const isLoading =
@@ -198,7 +202,11 @@ export default function ChatScreen({ onClose }: { onClose?: () => void } = {}) {
                     : { color: isDarkMode ? colors.text : "#1A1D2E" },
                 ]}
               >
-                {part.type === "text" ? part.text : ""}
+                {part.type === "text"
+                  ? isUser
+                    ? part.text
+                    : formatAssistantText(part.text ?? "")
+                  : ""}
               </Text>
             ),
           )}

@@ -7,12 +7,12 @@ import { useRouter } from "expo-router";
 import { ChevronLeft, ChevronRight, Clock, Zap } from "lucide-react-native";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -141,7 +141,11 @@ export default function MoodCalendarView({
   }, [modalDate, moodEntries]);
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.containerContent}
+      showsVerticalScrollIndicator={false}
+    >
       {/* Month Navigation */}
       <View
         style={[
@@ -198,12 +202,13 @@ export default function MoodCalendarView({
       <View style={styles.grid}>
         {cells.map((cell, index) => {
           const entry = moodByDate.get(cell.dateStr);
-          const moodColor = entry
-            ? MOOD_CONFIG[entry.mood]?.color ?? colors.border
-            : null;
+          const moodColor =
+            entry != null
+              ? (MOOD_CONFIG[entry.mood]?.color ?? colors.border)
+              : colors.border;
           const isCurrentMonth = cell.type === "current";
           const isToday = cell.dateStr === todayStr;
-          const hasMood = !!entry;
+          const hasMood = entry != null;
 
           return (
             <TouchableOpacity
@@ -504,15 +509,18 @@ export default function MoodCalendarView({
           </View>
         </TouchableOpacity>
       </Modal>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  containerContent: {
     paddingHorizontal: 20,
     paddingTop: 8,
+    paddingBottom: 32,
   },
   monthNav: {
     flexDirection: "row",
